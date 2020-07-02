@@ -157,6 +157,32 @@
 			</config>
 		</view>
 
+		<view n="199">
+			<name>Center Pedestal</name>
+			<type>lookfrom</type>
+			<internal archive="y">true</internal>
+			<config>
+				<from-model type="bool">true</from-model>
+                <x-offset-m>0</x-offset-m>
+                <y-offset-m>1.125</y-offset-m>
+                <z-offset-m>-14.25</z-offset-m>
+                <pitch-offset-deg>-70</pitch-offset-deg>
+			</config>
+		</view>
+
+		<view n="198">
+			<name>Overhead Panel</name>
+			<type>lookfrom</type>
+			<internal archive="y">true</internal>
+			<config>
+				<from-model type="bool">true</from-model>
+                <x-offset-m>0</x-offset-m>
+                <y-offset-m>1.1625</y-offset-m>
+                <z-offset-m>-13.5</z-offset-m>
+                <pitch-offset-deg>45</pitch-offset-deg>
+			</config>
+		</view>
+
 		<view n="100">
 			<name>Gear View</name>
 			<type>lookfrom</type>
@@ -718,12 +744,20 @@
 			<brightness type="float">0.5</brightness>
 		</IESS>
 
-		<cdu>
-			
+		<mcdu>
 			<display>IDENT</display>
 			<input type="string"/>
 			<serviceable type="bool">true</serviceable>
-		</cdu>
+            <command type="string"></command>
+            <brightness>0.8</brightness>
+		</mcdu>
+		<mcdu>
+			<display>IDENT</display>
+			<input type="string"/>
+			<serviceable type="bool">true</serviceable>
+            <command type="string"></command>
+            <brightness>0.8</brightness>
+		</mcdu>
 
 		<fmc>
 			<to-flap type="double">10</to-flap>
@@ -1020,9 +1054,6 @@
 		<walk>
 			<file>Aircraft/E-jet-family/Nasal/walk.nas</file>
 		</walk>
-		<cdu>
-			<file>Aircraft/Instruments-3d/cdu/boeing.nas</file>
-		</cdu>
 		<erj>
 			<file>Aircraft/E-jet-family/Nasal/doors.nas</file><!--
                         <file>Aircraft/E-jet-family/Nasal/lighting.nas</file>-->
@@ -1038,5 +1069,8 @@
             <file>Aircraft/E-jet-family/Nasal/fms-speed.nas</file>
             <file>Aircraft/E-jet-family/Nasal/vnav.nas</file>
         </fms>
+        <mcdu>
+            <file>Aircraft/E-jet-family/Models/Instruments/MCDU/mcdu-e-jets.nas</file>
+        </mcdu>
 	</nasal>
 </PropertyList>

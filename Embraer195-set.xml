@@ -60,11 +60,11 @@
 	</limits>
 
 	<instrumentation>
-		<cdu>
+		<mcdu>
 			<ident>
 				<model>ERJ195-200</model>
 				<engines>GE_CF34-10E</engines>
 			</ident>
-		</cdu>
+		</mcdu>
 	</instrumentation>
 </PropertyList>
