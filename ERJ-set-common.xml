@@ -1006,7 +1006,7 @@
 		</messages>
 		<systems>
 			<file>Aircraft/E-jet-family/Nasal/systems.nas</file>
-                        <file>Aircraft/E-jet-family/Nasal/limits.nas</file>
+            <file>Aircraft/E-jet-family/Nasal/limits.nas</file>
 		</systems>
 		<electrical>
 			<file>Aircraft/E-jet-family/Nasal/electrical.nas</file>
