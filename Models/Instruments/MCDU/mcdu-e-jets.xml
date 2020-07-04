@@ -1054,5 +1054,71 @@
     </action>
 </animation>
 
+<animation>
+    <type>knob</type>
+    <object-name>Value.Knob</object-name>
+    <increase>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>INC1</value>
+        </binding>
+    </increase>
+    <decrease>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>DEC1</value>
+        </binding>
+    </decrease>
+    <shift-increase>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>INC2</value>
+        </binding>
+    </shift-increase>
+    <shift-decrease>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>DEC2</value>
+        </binding>
+    </shift-decrease>
+</animation>
+
+<animation>
+    <type>knob</type>
+    <object-name>Value.Ring</object-name>
+    <increase>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>INC3</value>
+        </binding>
+    </increase>
+    <decrease>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>DEC3</value>
+        </binding>
+    </decrease>
+    <shift-increase>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>INC4</value>
+        </binding>
+    </shift-increase>
+    <shift-decrease>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>DEC4</value>
+        </binding>
+    </shift-decrease>
+</animation>
+
 
 </PropertyList>

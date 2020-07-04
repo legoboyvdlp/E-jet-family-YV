@@ -1,13 +1,5 @@
 # VNAV calculations for the Embraer E-Jet family
 
-var phase_to = 0;
-var phase_toclb = 1;
-var phase_departure = 2;
-var phase_climb = 3;
-var phase_cruise = 4;
-var phase_descent = 5;
-var phase_approach = 6;
-
 var nm_to_feet = 6076.0;
 var feet_to_nm = 1.0 / nm_to_feet;
 var climb_feet_per_nm = 318.0; # 3° climb

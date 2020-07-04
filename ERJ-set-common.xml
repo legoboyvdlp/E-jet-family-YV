@@ -537,6 +537,10 @@
             <available type="bool">false</available>
             <profile-alt type="double">0</profile-alt>
         </vnav>
+        <radio>
+            <nav-auto type="bool">false</nav-auto>
+            <nav-auto type="bool">false</nav-auto>
+        </radio>
     </fms>
 
 	<controls>
@@ -1066,8 +1070,10 @@
 			<file>Aircraft/E-jet-family/Nasal/autopilot.nas</file>
 		</input>
         <fms>
-            <file>Aircraft/E-jet-family/Nasal/fms-speed.nas</file>
-            <file>Aircraft/E-jet-family/Nasal/vnav.nas</file>
+            <file>Aircraft/E-jet-family/Nasal/fms/speed.nas</file>
+            <file>Aircraft/E-jet-family/Nasal/fms/vnav.nas</file>
+            <file>Aircraft/E-jet-family/Nasal/fms/radios.nas</file>
+            <file>Aircraft/E-jet-family/Nasal/fms/main.nas</file>
         </fms>
         <mcdu>
             <file>Aircraft/E-jet-family/Models/Instruments/MCDU/mcdu-e-jets.nas</file>

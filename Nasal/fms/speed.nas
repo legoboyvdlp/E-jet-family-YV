@@ -122,10 +122,3 @@ var update_fms_speed = func () {
         }
     }
 };
-
-setlistener("sim/signals/fdm-initialized", func {
-	var timer = maketimer(0.1, func () { update_fms_speed(); });
-    timer.simulatedTime = 1;
-    timer.singleShot = 0;
-	timer.start();
-});

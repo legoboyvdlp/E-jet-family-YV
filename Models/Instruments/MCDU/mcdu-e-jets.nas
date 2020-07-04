@@ -1,6 +1,13 @@
 # Embraer E-Jet family MCDU.
 
-mcdu_colors = [
+var swapProps = func (prop1, prop2) {
+    fgcommand("property-swap", {
+        "property[0]": prop1,
+        "property[1]": prop2
+    });
+};
+
+var mcdu_colors = [
     [1,1,1],
     [1,0,0],
     [1,1,0],
@@ -19,6 +26,8 @@ var mcdu_cyan = 4;
 var mcdu_blue = 5;
 var mcdu_magenta = 6;
 
+var mcdu_large = 0x10;
+
 var cell_w = 18;
 var cell_h = 27;
 var cells_x = 24;
@@ -32,15 +41,58 @@ var font_size_large = 26;
 var left_triangle = "◄";
 var right_triangle = "►";
 
-var Module = {
-    init: func (mcdu) {
-        me.mcdu = mcdu;
-        me.page = 0;
-        me.active = 0;
-        me.title = "GENERIC";
-    },
+var widgetProps = {
+    # key      property                                             type
+    "NAV1A": [ "/instrumentation/nav[0]/frequencies/selected-mhz",  "NAV" ],
+    "NAV1S": [ "/instrumentation/nav[0]/frequencies/standby-mhz",   "NAV" ],
+    "NAV1ID": [ "/instrumentation/nav[0]/nav-id",                   "STR" ],
+    "DME1H": [ "/instrumentation/dme[0]/frequencies/source",       "DMEH" ],
+    "NAV1AUTO": [ "/fms/radio/nav-auto[0]",                       "ONOFF" ],
+    "NAV2A": [ "/instrumentation/nav[1]/frequencies/selected-mhz",  "NAV" ],
+    "NAV2S": [ "/instrumentation/nav[1]/frequencies/standby-mhz",   "NAV" ],
+    "NAV2ID": [ "/instrumentation/nav[1]/nav-id",                   "STR" ],
+    "DME2H": [ "/instrumentation/dme[1]/frequencies/source",       "DMEH" ],
+    "NAV2AUTO": [ "/fms/radio/nav-auto[1]",                       "ONOFF" ],
+    "COM1A": [ "/instrumentation/comm[0]/frequencies/selected-mhz", "COM" ],
+    "COM1S": [ "/instrumentation/comm[0]/frequencies/standby-mhz",  "COM" ],
+    "COM2A": [ "/instrumentation/comm[1]/frequencies/selected-mhz", "COM" ],
+    "COM2S": [ "/instrumentation/comm[1]/frequencies/standby-mhz",  "COM" ],
+    "ADF1A": [ "/instrumentation/adf[0]/frequencies/selected-khz",  "ADF" ],
+    "ADF1S": [ "/instrumentation/adf[0]/frequencies/standby-khz",   "ADF" ],
+    "ADF2A": [ "/instrumentation/adf[1]/frequencies/selected-khz",  "ADF" ],
+    "ADF2S": [ "/instrumentation/adf[1]/frequencies/standby-khz",   "ADF" ],
+    "XPDRA": [ "/instrumentation/transponder/id-code",             "XPDR" ],
+};
 
-    getNumPages: func () { return 1; },
+var propTypes = {
+    # key        type     min    max
+    "COM":   [  "mhz",  118.0, 137.0 ],
+    "NAV":   [  "mhz",  108.0, 118.0 ],
+    "ADF":   [  "khz",  190.0, 999.0 ],
+    "XPDR":  [ "xpdr",    nil,   nil ],
+    "DMEH":  [ "dmeh",    nil,   nil ],
+    "ONOFF": [ "bool",      0,     1 ],
+    "STR":   [  "str",    nil,   nil ],
+};
+
+var validate = func (val, ty) {
+    if (ty[1] != nil and val < ty[1]) return 0;
+    if (ty[2] != nil and val > ty[2]) return 0;
+    return 1;
+};
+
+var Module = {
+    new: func (mcdu, mode, n) {
+        var m = { parents: [Module] };
+        m.mcdu = mcdu;
+        m.page = 0;
+        m.active = 0;
+        m.listeners = {};
+        m.mode = (Module.modes[mode])(n);
+        m.title = m.mode.title;
+        m.selectedKey = nil;
+        return m;
+    },
 
     drawPager: func () {
         me.mcdu.print(21, 0, sprintf("%1d/%1d", me.page + 1, me.getNumPages()), 0);
@@ -48,7 +100,7 @@ var Module = {
 
     drawTitle: func () {
         var x = math.floor((cells_x - 3 - size(me.title)) / 2);
-        me.mcdu.print(x, 0, me.title, 0x10);
+        me.mcdu.print(x, 0, me.title, mcdu_large | mcdu_white);
     },
 
     fullRedraw: func () {
@@ -58,111 +110,244 @@ var Module = {
         me.redraw();
     },
 
-    redraw: func () {
-    },
-
-    handleCommand: func (cmd) {
-    },
-
     nextPage: func () {
         if (me.page < me.getNumPages() - 1) {
             me.page += 1;
-            me.drawPager();
-            me.redraw();
+            me.onPageChanged();
+            me.fullRedraw();
         }
     },
 
     prevPage: func () {
         if (me.page > 0) {
             me.page -= 1;
-            me.drawPager();
-            me.redraw();
+            me.onPageChanged();
+            me.fullRedraw();
         }
     },
 
-    activate: func () {
+    defHandlers: {
+        "INC1": [ "propdial", [ 1 ] ],
+        "DEC1": [ "propdial", [ -1 ] ],
+        "INC2": [ "propdial", [ 2 ] ],
+        "DEC2": [ "propdial", [ -2 ] ],
+        "INC3": [ "propdial", [ 3 ] ],
+        "DEC3": [ "propdial", [ -3 ] ],
+        "INC4": [ "propdial", [ 4 ] ],
+        "DEC4": [ "propdial", [ -4 ] ],
     },
 
-    deactivate: func () {
-    }
-};
-
-var radioProps = {
-    "NAV1A": "/instrumentation/nav[0]/frequencies/selected-mhz",
-    "NAV1S": "/instrumentation/nav[0]/frequencies/standby-mhz",
-    "NAV2A": "/instrumentation/nav[1]/frequencies/selected-mhz",
-    "NAV2S": "/instrumentation/nav[1]/frequencies/standby-mhz",
-    "COM1A": "/instrumentation/comm[0]/frequencies/selected-mhz",
-    "COM1S": "/instrumentation/comm[0]/frequencies/standby-mhz",
-    "COM2A": "/instrumentation/comm[1]/frequencies/selected-mhz",
-    "COM2S": "/instrumentation/comm[1]/frequencies/standby-mhz",
-};
-
-var radioPos = {
-    "COM1A": [  1, 2, "%7.3f", 0x10 | mcdu_green ],
-    "COM1S": [  1, 4, "%7.3f", 0x10 | mcdu_yellow ],
-    "COM2A": [ 16, 2, "%7.3f", 0x10 | mcdu_green ],
-    "COM2S": [ 16, 4, "%7.3f", 0x10 | mcdu_yellow ],
-    "NAV1A": [  1, 6, "%7.3f", 0x10 | mcdu_green ],
-    "NAV1S": [  1, 8, "%7.3f", 0x10 | mcdu_yellow ],
-    "NAV2A": [ 16, 6, "%7.3f", 0x10 | mcdu_green ],
-    "NAV2S": [ 16, 8, "%7.3f", 0x10 | mcdu_yellow ],
-};
-
-var RadioModule = {
-    keysPage1: [
-        "COM1A", "COM1S",
-        "COM2A", "COM2S",
-        "NAV1A", "NAV1S",
-        "NAV2A", "NAV2S",
-    ],
-
-    new: func (mcdu) {
-        var m = { parents: [RadioModule, Module] };
-        m.init(mcdu);
-        m.title = "RADIO";
-        m.listeners = {};
-        return m;
+    modes: {
+        "RADIO": func (n) {
+            return {
+                title: "RADIO",
+                pages: [
+                    {
+                        widgets: {
+                            #               x   y      fmt                     flags  w
+                            "COM1A":    [[  1,  2, "%7.3f", mcdu_large |  mcdu_green, 7 ]],
+                            "COM1S":    [[  1,  4, "%7.3f", mcdu_large | mcdu_yellow, 7 ]],
+                            "COM2A":    [[ 16,  2, "%7.3f", mcdu_large |  mcdu_green, 7 ]],
+                            "COM2S":    [[ 16,  4, "%7.3f", mcdu_large | mcdu_yellow, 7 ]],
+                            "NAV1A":    [[  1,  6, "%6.2f", mcdu_large |  mcdu_green, 6 ]],
+                            "NAV1S":    [[  1,  8, "%6.2f", mcdu_large | mcdu_yellow, 6 ]],
+                            "NAV2A":    [[ 17,  6, "%6.2f", mcdu_large |  mcdu_green, 6 ]],
+                            "NAV2S":    [[ 17,  8, "%6.2f", mcdu_large | mcdu_yellow, 6 ]],
+                            "XPDRA":    [[ 19, 10,  "%04d", mcdu_large |  mcdu_green, 4 ]],
+                            "NAV1AUTO": [[  8, 5, ["", "FMS "],  mcdu_large |  mcdu_blue, 4 ],
+                                         [  8, 6, ["", "AUTO"],  mcdu_large |  mcdu_blue, 4 ]],
+                            "NAV2AUTO": [[ 12, 5, ["", "FMS "],  mcdu_large |  mcdu_blue, 4 ],
+                                         [ 12, 6, ["", "AUTO"],  mcdu_large |  mcdu_blue, 4 ]],
+                        },
+                        static: [
+                            [  1,  1, "COM1",                   mcdu_white ],
+                            [  0,  4, left_triangle,            mcdu_large | mcdu_white ],
+                            [ 19,  1, "COM2",                   mcdu_white ],
+                            [ 23,  4, right_triangle,           mcdu_large | mcdu_white ],
+                            [  1,  5, "NAV1",                   mcdu_white ],
+                            [  0,  8, left_triangle,            mcdu_large | mcdu_white ],
+                            [ 19,  5, "NAV2",                   mcdu_white ],
+                            [ 23,  8, right_triangle,           mcdu_large | mcdu_white ],
+                            [ 19,  9, "XPDR",                   mcdu_white ],
+                            [ 23, 10, right_triangle,           mcdu_large | mcdu_white ],
+                            [ 18, 11, "IDENT",                  mcdu_white ],
+                            [ 18, 12, "IDENT" ~ right_triangle, mcdu_large | mcdu_white ],
+                        ],
+                        dividers: [0, 1, 3, 4],
+                        handlers: {
+                            "L1": [ "freqswap", ["COM1"] ],
+                            "L3": [ "freqswap", ["NAV1"] ],
+                            "R1": [ "freqswap", ["COM2"] ],
+                            "R3": [ "freqswap", ["NAV2"] ],
+                            "L2": [ "propsel", ["COM1S"] ],
+                            "L4": [ "propsel", ["NAV1S", "NAV1"] ],
+                            "R2": [ "propsel", ["COM2S"] ],
+                            "R4": [ "propsel", ["NAV2S", "NAV2"] ],
+                            "R5": [ "propsel", ["XPDRA"] ],
+                            "R6": [ "ident", [] ],
+                        }
+                    },
+                    {
+                        widgets: {
+                            #            x   y      fmt                     flags  w
+                            "ADF1A": [[  1,  2, "%5.1f", mcdu_large |  mcdu_green, 5 ]],
+                            "ADF1S": [[  1,  4, "%5.1f", mcdu_large | mcdu_yellow, 5 ]],
+                            "ADF2A": [[ 18,  2, "%5.1f", mcdu_large |  mcdu_green, 5 ]],
+                            "ADF2S": [[ 18,  4, "%5.1f", mcdu_large | mcdu_yellow, 5 ]],
+                        },
+                        static: [
+                            [ 1, 1, "ADF1",         mcdu_white ],
+                            [ 0, 4, left_triangle,  mcdu_large | mcdu_white ],
+                            [19, 1, "ADF2",         mcdu_white ],
+                            [23, 4, right_triangle, mcdu_large | mcdu_white ],
+                        ],
+                        dividers: [0, 1, 2, 3, 4],
+                        handlers: {
+                            "L1": [ "freqswap", ["ADF1"] ],
+                            "R1": [ "freqswap", ["ADF2"] ],
+                            "L2": [ "propsel", ["ADF1S"] ],
+                            "R2": [ "propsel", ["ADF2S"] ],
+                        }
+                    }
+                ]
+            };
+        },
+        "NAV": func (n) {
+            var widgets = {};
+            #                                 x   y      fmt         flags                     w
+            widgets["NAV" ~ n ~ "A"] =    [[  1,  2, "%6.2f",        mcdu_large |  mcdu_green, 6 ]];
+            widgets["NAV" ~ n ~ "S"] =    [[  1,  4, "%6.2f",        mcdu_large | mcdu_yellow, 6 ]];
+            widgets["DME" ~ n ~ "H"] =    [[ 17,  4, "OFFON",        mcdu_large |  mcdu_green, 6 ]];
+            widgets["NAV" ~ n ~ "AUTO"] = [[ 17, 10, "OFFON",        mcdu_large |  mcdu_green, 6 ]];
+            return {
+                title: "NAV" ~ n,
+                pages: [
+                    {
+                        widgets: widgets,
+                        static: [
+                            [  1,  1, "ACTIVE",                 mcdu_white ],
+                            [  1,  3, "PRESET",                 mcdu_white ],
+                            [ 15,  3, "DME HOLD",               mcdu_white ],
+                            [ 15,  9, "FMS AUTO",               mcdu_white ],
+                            [  0, 12, left_triangle, mcdu_large | mcdu_white ],
+                            [  1, 12, "MEMORY", mcdu_large | mcdu_white ],
+                            [ 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ],
+                            [ 23, 12, right_triangle, mcdu_large | mcdu_white ],
+                        ],
+                        dividers: [],
+                        handlers: {
+                            "L1": [ "freqswap", ["NAV" ~ n] ],
+                            "L2": [ "propsel", ["NAV" ~ n ~ "S"] ],
+                            "R2": [ "toggledme", ["DME" ~ n ~ "H", "NAV" ~ n ~ "A"] ],
+                            "R5": [ "toggle", ["NAV" ~ n ~ "AUTO"] ],
+                            "R6": [ "ret", [] ],
+                        }
+                    }
+                ]
+            };
+        },
     },
 
     getNumPages: func () {
-        return 2;
+        return size(me.mode.pages);
+    },
+
+    onPageChanged: func () {
+        me.selectedKey = nil;
     },
 
     drawFreq: func (key) {
-        var val = getprop(radioProps[key]);
-        var pos = radioPos[key];
-        me.mcdu.print(pos[0], pos[1], sprintf(pos[2], val), pos[3]);
+        var val = getprop(widgetProps[key][0]);
+        foreach (var widget; me.mode.pages[me.page].widgets[key]) {
+            if (widgetProps[key][1] == "DMEH") {
+                # some magic needed unfortunately
+                if (substr(val, 0, size("/instrumentation/dme")) == "/instrumentation/dme" or val == '') {
+                    # assigned to its own freq = DME HOLD
+                    val = 1;
+                }
+                else {
+                    # assigned to something other than its own freq
+                    val = 0;
+                }
+            }
+            var str = "";
+            var f = widget[2];
+            if (typeof(f) == "scalar") {
+                if (f == "ONOFF") {
+                    me.mcdu.print(widget[0], widget[1], "ON", val ? widget[3] : 0);
+                    me.mcdu.print(widget[0] + 3, widget[1], "OFF", val ? 0 : widget[3]);
+                }
+                else if (f == "OFFON") {
+                    me.mcdu.print(widget[0], widget[1], "OFF", val ? 0 : widget[3]);
+                    me.mcdu.print(widget[0] + 4, widget[1], "ON", val ? widget[3] : 0);
+                }
+                else {
+                    str = sprintf(f, val);
+                    me.mcdu.print(widget[0], widget[1], str, widget[3]);
+                }
+            }
+            else if (typeof(f) == "vector") {
+                var fmt = "%" ~ widget[4] ~ "s";
+                if (val == nil) {
+                    str = sprintf(fmt, f[0]);
+                }
+                if (val) {
+                    str = sprintf(fmt, f[1]);
+                }
+                else {
+                    str = sprintf(fmt, f[0]);
+                }
+                me.mcdu.print(widget[0], widget[1], str, widget[3]);
+            }
+            else {
+                print("UNKNOWN FORMAT TYPE: ", typeof(f));
+                str = val ~ "";
+                me.mcdu.print(widget[0], widget[1], str, widget[3]);
+            }
+        }
+    },
+
+    drawFocusBox: func () {
+        if (me.selectedKey == nil) {
+            me.mcdu.clearFocusBox();
+        }
+        else {
+            var widget = me.mode.pages[me.page].widgets[me.selectedKey][0];
+            if (widget != nil) {
+                me.mcdu.setFocusBox(widget[0], widget[1], widget[4]);
+            }
+        }
     },
 
     redraw: func () {
-        if (me.page == 0) {
-            me.mcdu.print( 1, 1, "COM1", mcdu_white);
-            me.mcdu.print( 0, 4, left_triangle, mcdu_white);
-            me.mcdu.print(19, 1, "COM2", mcdu_white);
-            me.mcdu.print(23, 4, right_triangle, mcdu_white);
-            me.mcdu.print( 1, 5, "NAV1", mcdu_white);
-            me.mcdu.print( 0, 8, left_triangle, mcdu_white);
-            me.mcdu.print(19, 5, "NAV2", mcdu_white);
-            me.mcdu.print(23, 8, right_triangle, mcdu_white);
-            foreach (var key; RadioModule.keysPage1) {
-                me.drawFreq(key);
-            }
+        var currentPage = me.mode.pages[me.page];
+        foreach (var s; currentPage.static) {
+            me.mcdu.print(s[0], s[1], s[2], s[3]);
         }
-        else if (me.page == 1) {
+        foreach (var key; keys(currentPage.widgets)) {
+            me.drawFreq(key);
         }
+        foreach (var d; currentPage.dividers) {
+            me.mcdu.showDivider(d);
+        }
+        me.drawFocusBox();
     },
 
     activate: func () {
-        foreach (var key; keys(radioProps)) {
-            me.listeners[key] = setlistener(radioProps[key], func () {
-                me.drawFreq(key);
+        var activateFreq = func (k) {
+            me.listeners[k] = setlistener(widgetProps[k][0], func (changed) {
+                me.drawFreq(k);
             });
+        };
+        foreach (var page; me.mode.pages) {
+            foreach (var key; keys(page.widgets)) {
+                activateFreq(key);
+            }
         }
     },
 
     deactivate: func () {
-        foreach (var key; keys(radioProps)) {
+        foreach (var key; keys(me.listeners)) {
             if (me.listeners[key] != nil) {
                 removelistener(me.listeners[key]);
                 delete(me.listeners, key);
@@ -170,7 +355,183 @@ var RadioModule = {
         }
     },
 
+    freqswap: func (keyBase) {
+        var prop1 = widgetProps[keyBase ~ "A"][0];
+        var prop2 = widgetProps[keyBase ~ "S"][0];
+        swapProps(prop1, prop2);
+    },
+
+    propsel: func (key, link = nil) {
+        var val = me.mcdu.popScratchpad();
+        if (val == "") {
+            if (me.selectedKey == key) {
+                if (link != nil) {
+                    me.mcdu.pushModule(link);
+                }
+            }
+            else {
+                me.selectedKey = key;
+                me.drawFocusBox();
+            }
+        }
+        else {
+            var prop = widgetProps[key][0];
+            var ty = propTypes[widgetProps[key][1]];
+            if (validate(val, ty)) {
+                setprop(prop, val);
+            }
+            else {
+                # TODO: issue error message in scratchpad
+            }
+        }
+    },
+
+    propdial: func (digit) {
+        if (me.selectedKey == nil) {
+            return;
+        }
+        var prop = widgetProps[me.selectedKey];
+        var ps = me.mode.pages[me.page][me.selectedKey];
+        var val = getprop(prop[0]);
+        var ty = propTypes[prop[1]];
+
+        if (ty[0] == "xpdr") {
+            val = ('0o' ~ val) + 0;
+
+            if (digit == 1) {
+                val = (val & 0o7770) | ((val + 1) & 0o7)
+            }
+            else if (digit == 2) {
+                val = (val & 0o7707) | ((val + 0o10) & 0o70)
+            }
+            else if (digit == 3) {
+                val = (val & 0o7077) | ((val + 0o100) & 0o700)
+            }
+            else if (digit == 4) {
+                val = (val & 0o0777) | ((val + 0o1000) & 0o7000)
+            }
+            else if (digit == -1) {
+                val = (val & 0o7770) | ((val - 1) & 0o7)
+            }
+            else if (digit == -2) {
+                val = (val & 0o7707) | ((val - 0o10) & 0o70)
+            }
+            else if (digit == -3) {
+                val = (val & 0o7077) | ((val - 0o100) & 0o700)
+            }
+            else if (digit == -4) {
+                val = (val & 0o0777) | ((val - 0o1000) & 0o7000)
+            }
+
+            val = sprintf("%04o", val);
+        }
+        else if (ty[0] == "mhz") {
+            if (digit == 1) {
+                val += 0.01;
+            }
+            else if (digit == 2) {
+                val += 0.1;
+            }
+            else if (digit == 3) {
+                val += 1;
+            }
+            else if (digit == 4) {
+                val += 10;
+            }
+            else if (digit == -1) {
+                val -= 0.01;
+            }
+            else if (digit == -2) {
+                val -= 0.1;
+            }
+            else if (digit == -3) {
+                val -= 1;
+            }
+            else if (digit == -4) {
+                val -= 10;
+            }
+        }
+        else if (ty[0] == "khz") {
+            if (digit == 1) {
+                val += 0.5;
+            }
+            else if (digit == 2) {
+                val += 1;
+            }
+            else if (digit == 3) {
+                val += 10;
+            }
+            else if (digit == 4) {
+                val += 100;
+            }
+            else if (digit == -1) {
+                val -= 0.5;
+            }
+            else if (digit == -2) {
+                val -= 1;
+            }
+            else if (digit == -3) {
+                val -= 10;
+            }
+            else if (digit == -4) {
+                val -= 100;
+            }
+        }
+        if (ty[1] != nil) { val = math.max(ty[1], val); }
+        if (ty[2] != nil) { val = math.min(ty[2], val); }
+        setprop(prop[0], val);
+        me.drawFreq(me.selectedKey);
+    },
+
+    toggle: func (key) {
+        var prop = widgetProps[key][0];
+        fgcommand("property-toggle", { "property": prop });
+        me.drawFreq(key);
+    },
+
+    toggledme: func (key, target) {
+        var prop = widgetProps[key][0];
+        var target = widgetProps[target][0];
+        if (getprop(prop) != target) {
+            setprop(prop, target);
+        }
+        else {
+            setprop(prop, '');
+        }
+        me.drawFreq(key);
+    },
+        
+    ident: func () {
+        setprop("/instrumentation/transponder/inputs/ident-btn", 1);
+    },
+
+    goto: func (target) {
+        me.mcdu.pushModule(target);
+    },
+
+    ret: func () {
+        me.mcdu.popModule();
+    },
+
     handleCommand: func (cmd) {
+        var c = me.mode.pages[me.page].handlers[cmd];
+        if (c == nil) { c = me.defHandlers[cmd]; }
+        var funcs = {
+            "propdial": me.propdial,
+            "freqswap": me.freqswap,
+            "propsel": me.propsel,
+            "toggle": me.toggle,
+            "toggledme": me.toggledme,
+            "ident": me.ident,
+            "goto": me.goto,
+            "ret": me.ret,
+        };
+        if (c != nil) {
+            var f = funcs[c[0]];
+            if (f != nil) {
+                call(f, c[1], me);
+            }
+        }
     }
 };
 
@@ -184,25 +545,53 @@ var MCDU = {
             display: nil,
             scratchpad: "",
             scratchpadElem: nil,
+            dividers: [],
             screenbuf: [],
             screenbufElems: [],
-            modules: {},
             activeModule: nil,
+            moduleStack: [],
             g: nil
         };
         m.initCanvas();
-        m.modules["RADIO"] = RadioModule.new(m);
         setlistener("/instrumentation/mcdu[" ~ n ~ "]/command", func () {
             m.handleCommand();
         });
         return m;
     },
 
-    activateModule: func (moduleName) {
+    makeModule: {
+        "RADIO": func (mcdu) { return Module.new(mcdu, "RADIO", 1); },
+        "NAV1":  func (mcdu) { return Module.new(mcdu, "NAV", 1); },
+        "NAV2":  func (mcdu) { return Module.new(mcdu, "NAV", 2); },
+    },
+
+    pushModule: func (moduleName) {
+        if (me.activeModule != nil) {
+            append(me.moduleStack, me.activeModule);
+            me.activateModule(moduleName);
+        }
+    },
+
+    gotoModule: func (moduleName) {
+        me.moduleStack = [];
+        me.activateModule(moduleName);
+    },
+
+    popModule: func () {
+        var target = pop(me.moduleStack);
+        me.activateModule(target);
+    },
+
+    activateModule: func (module) {
         if (me.activeModule != nil) {
             me.activeModule.deactivate();
         }
-        me.activeModule = me.modules[moduleName];
+        if (typeof(module) == "scalar") {
+            me.activeModule = me.makeModule[module](me);
+        }
+        else {
+            me.activeModule = module;
+        }
         if (me.activeModule != nil) {
             me.activeModule.activate();
             me.activeModule.fullRedraw();
@@ -212,9 +601,20 @@ var MCDU = {
         }
     },
 
+    popScratchpad: func () {
+        var val = me.scratchpad;
+        me.scratchpad = "";
+        me.scratchpadElem.setText(me.scratchpad);
+        return val;
+    },
+
+    setScratchpad: func (str) {
+        me.scratchpad = str;
+        me.scratchpadElem.setText(me.scratchpad);
+    },
+
     handleCommand: func () {
         var cmd = me.commandprop.getValue();
-        print("MCDU" ~ me.num ~ ": ", cmd);
         if (size(cmd) == 1) {
             # this is a "char" command
             me.scratchpad = me.scratchpad ~ cmd;
@@ -228,8 +628,7 @@ var MCDU = {
             }
         }
         else if (cmd == "CLR") {
-            me.scratchpad = "";
-            me.scratchpadElem.setText(me.scratchpad);
+            me.popScratchpad();
         }
         else if (cmd == "RADIO") {
             me.activateModule("RADIO");
@@ -252,7 +651,6 @@ var MCDU = {
     },
 
     initCanvas: func () {
-        print("Init canvas...");
         me.display = canvas.new({
             "name": "MCDU" ~ me.num,
             "size": [512,512],
@@ -272,7 +670,8 @@ var MCDU = {
                 elem.setColor(1,1,1);
                 elem.setFontSize(font_size_large);
                 elem.setFont("LiberationFonts/LiberationMono-Regular.ttf");
-                elem.setTranslation(x * cell_w + margin_left, y * cell_h + margin_top + cell_h);
+                elem.setTranslation(x * cell_w + margin_left + cell_w * 0.5, y * cell_h + margin_top + cell_h);
+                elem.setAlignment('center-bottom');
                 append(me.screenbuf, [" ", 0]);
                 append(me.screenbufElems, elem);
                 i += 1;
@@ -282,11 +681,78 @@ var MCDU = {
         me.repaintScreen();
 
         me.scratchpadElem = me.g.createChild("text", "scratchpad");
-        me.scratchpadElem.setText("----");
+        me.scratchpadElem.setText("");
         me.scratchpadElem.setFontSize(font_size_large);
         me.scratchpadElem.setFont("LiberationFonts/LiberationMono-Regular.ttf");
         me.scratchpadElem.setColor(1,1,1);
         me.scratchpadElem.setTranslation(margin_left, (cells_y + 1) * cell_h + margin_top);
+
+        # Dividers
+        # Vertical
+        var d = nil;
+        var cx = margin_left + cells_x * cell_w / 2;
+
+        d = me.g.createChild("path");
+        d.moveTo(cx, margin_top + cell_h + 4);
+        d.vertTo(margin_top + cell_h * 5 + 4);
+        d.setColor(1,1,1);
+        d.setStrokeLineWidth(2);
+        d.hide();
+        append(me.dividers, d);
+
+        d = me.g.createChild("path");
+        d.moveTo(cx, margin_top + cell_h * 5 + 4);
+        d.vertTo(margin_top + cell_h * 9 + 4);
+        d.setColor(1,1,1);
+        d.setStrokeLineWidth(2);
+        d.hide();
+        append(me.dividers, d);
+
+        d = me.g.createChild("path");
+        d.moveTo(cx, margin_top + cell_h * 9 + 4);
+        d.vertTo(margin_top + cell_h * 13 + 4);
+        d.setColor(1,1,1);
+        d.setStrokeLineWidth(2);
+        d.hide();
+        append(me.dividers, d);
+
+        # Horizontal
+        d = me.g.createChild("path");
+        d.moveTo(margin_left, margin_top + cell_h * 5 + 4);
+        d.horizTo(margin_left + cells_x * cell_w);
+        d.setColor(1,1,1);
+        d.setStrokeLineWidth(2);
+        d.hide();
+        append(me.dividers, d);
+
+        d = me.g.createChild("path");
+        d.moveTo(margin_left, margin_top + cell_h * 9 + 4);
+        d.horizTo(margin_left + cells_x * cell_w);
+        d.setColor(1,1,1);
+        d.setStrokeLineWidth(2);
+        d.hide();
+        append(me.dividers, d);
+
+        # Focus box
+        me.focusBoxElem = me.g.createChild("path");
+        me.focusBoxElem.setColor(1,1,1);
+        me.focusBoxElem.setStrokeLineWidth(2);
+        me.focusBoxElem.hide();
+    },
+
+    setFocusBox: func (x, y, w) {
+        me.focusBoxElem.reset();
+        me.focusBoxElem.rect(
+            margin_left + x * cell_w,
+            margin_top + y * cell_h + 4,
+            cell_w * w, cell_h);
+        me.focusBoxElem.setColor(1,1,1);
+        me.focusBoxElem.setStrokeLineWidth(2);
+        me.focusBoxElem.show();
+    },
+
+    clearFocusBox: func () {
+        me.focusBoxElem.hide();
     },
 
     clear: func () {
@@ -294,6 +760,21 @@ var MCDU = {
         for (i = 0; i < num_cells; i += 1) {
             me.screenbuf[i] = [" ", 0];
             me.repaintCell(i);
+        }
+        for (i = 0; i < size(me.dividers); i += 1) {
+            me.dividers[i].hide();
+        }
+    },
+
+    showDivider: func (i) {
+        if (i >= 0 and i < size(me.dividers)) {
+            me.dividers[i].show();
+        }
+    },
+
+    hideDivider: func (i) {
+        if (i >= 0 and i < size(me.dividers)) {
+            me.dividers[i].hide();
         }
     },
 
@@ -308,7 +789,7 @@ var MCDU = {
         var elem = me.screenbufElems[i];
         var flags = me.screenbuf[i][1];
         var colorIndex = flags & 0x07;
-        var largeSize = flags & 0x10;
+        var largeSize = flags & mcdu_large;
         var color = mcdu_colors[colorIndex];
         elem.setText(me.screenbuf[i][0]);
         elem.setColor(color[0], color[1], color[2]);
