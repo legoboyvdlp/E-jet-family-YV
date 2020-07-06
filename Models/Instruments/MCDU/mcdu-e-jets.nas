@@ -44,6 +44,15 @@ var left_right_arrow = "↔";
 var up_down_arrow = "↕";
 var black_square = "■";
 
+var utf8NumBytes = func (c) {
+    if ((c & 0x80) == 0x00) { return 1; }
+    if ((c & 0xE0) == 0xC0) { return 2; }
+    if ((c & 0xF0) == 0xE0) { return 3; }
+    if ((c & 0xF8) == 0xF0) { return 4; }
+    printf("UTF8 error (%d / %02x)", c, c);
+    return 1;
+};
+
 var xpdrModeLabels = [
     "STBY",
     "ALT-OFF",
@@ -408,7 +417,15 @@ var Module = {
         m.active = 0;
         m.listeners = [];
         var modeFactory = Module.modes[mode];
-        m.mode = (Module.modes[mode])(n);
+        var parentModule = mcdu.activeModule;
+        var ptitle = nil;
+        if (parentModule != nil) {
+            ptitle = sprintf("%s %d/%d",
+                parentModule.mode.title,
+                parentModule.page + 1,
+                parentModule.getNumPages());
+        }
+        m.mode = (Module.modes[mode])(ptitle, n);
         m.title = m.mode.title;
         m.selectedKey = nil;
         return m;
@@ -458,7 +475,65 @@ var Module = {
     },
 
     modes: {
-        "RADIO": func (n) {
+        "NAVINDEX": func (ptitle, n) {
+            return {
+                title: "NAV INDEX",
+                pages: [
+                    {
+                        widgets: [
+                            StaticWidget.new( 0,  2, left_triangle ~ "NAV IDENT  ", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0,  4, left_triangle ~ "WPT LIST   ", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0,  6, left_triangle ~ "FPL LIST   ", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0,  8, left_triangle ~ "POS SENSORS", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0, 10, left_triangle ~ "FIX INFO   ", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0, 12, left_triangle ~ "DEPARTURE  ", mcdu_large | mcdu_white),
+                            StaticWidget.new(12,  6, "    FLT SUM" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticWidget.new(12, 10, "       HOLD" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticWidget.new(12, 12, "    ARRIVAL" ~ right_triangle, mcdu_large | mcdu_white),
+                        ],
+                        handlers: {
+                        }
+                    },
+                    {
+                        widgets: [
+                            StaticWidget.new( 0,  2, left_triangle ~ "POS INIT   ", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0,  4, left_triangle ~ "DATA LOAD  ", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0,  6, left_triangle ~ "PATTERNS   ", mcdu_large | mcdu_white),
+                            StaticWidget.new(12,  2, " CONVERSION" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticWidget.new(12,  4, "MAINTENANCE" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticWidget.new(12,  6, "  CROSS PTS" ~ right_triangle, mcdu_large | mcdu_white),
+                        ],
+                        handlers: {
+                            "L1": [ "goto", ["POSINIT"] ]
+                        }
+                    }
+                ]
+            };
+        },
+        "POSINIT": func (ptitle, n) {
+            var m = {
+                title: "POSITION INIT",
+                pages: [
+                    {
+                        widgets: [
+                        ],
+                        handlers: {
+                        }
+                    }
+                ]
+            };
+            if (ptitle != nil) {
+                m.pages[0].handlers["R6"] = [ "ret", [] ];
+                append(
+                    m.pages[0].widgets,
+                    StaticWidget.new(22 - size(ptitle), 12, ptitle, mcdu_large));
+                append(
+                    m.pages[0].widgets,
+                    StaticWidget.new(23, 12, right_triangle, mcdu_large));
+            }
+            return m;
+        },
+        "RADIO": func (ptitle, n) {
             return {
                 title: "RADIO",
                 pages: [
@@ -548,7 +623,7 @@ var Module = {
                 ]
             };
         },
-        "NAV": func (n) {
+        "NAV": func (ptitle, n) {
             return {
                 title: "NAV " ~ n,
                 pages: [
@@ -566,10 +641,9 @@ var Module = {
                             StaticWidget.new( 15,  9, "FMS AUTO",               mcdu_white ),
                             StaticWidget.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
                             StaticWidget.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
-                            StaticWidget.new( 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ),
+                            StaticWidget.new( 14, 12, ptitle, mcdu_large | mcdu_white ),
                             StaticWidget.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
                         ],
-                        dividers: [],
                         handlers: {
                             "L1": [ "freqswap", ["NAV" ~ n] ],
                             "L2": [ "propsel", ["NAV" ~ n ~ "S"] ],
@@ -581,7 +655,7 @@ var Module = {
                 ]
             };
         },
-        "COM": func (n) {
+        "COM": func (ptitle, n) {
             return {
                 title: "COM " ~ n,
                 pages: [
@@ -599,10 +673,9 @@ var Module = {
                             StaticWidget.new( 19,  5, "FREQ",                   mcdu_white ),
                             StaticWidget.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
                             StaticWidget.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
-                            StaticWidget.new( 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ),
+                            StaticWidget.new( 14, 12, ptitle, mcdu_large | mcdu_white ),
                             StaticWidget.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
                         ],
-                        dividers: [],
                         handlers: {
                             "L1": [ "freqswap", ["COM" ~ n] ],
                             "L2": [ "propsel", ["COM" ~ n ~ "S"] ],
@@ -612,7 +685,7 @@ var Module = {
                 ]
             };
         },
-        "XPDR": func (n) {
+        "XPDR": func (ptitle, n) {
             return {
                 title: "TCAS/XPDR",
                 pages: [
@@ -635,10 +708,9 @@ var Module = {
                             StaticWidget.new(  8, 10, "XPDR 2",                 mcdu_white ),
                             StaticWidget.new( 18, 10, "IDENT",                  mcdu_large | mcdu_white ),
                             StaticWidget.new( 23, 10, black_square,             mcdu_large | mcdu_white ),
-                            StaticWidget.new( 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ),
+                            StaticWidget.new( 14, 12, ptitle,              mcdu_large | mcdu_white ),
                             StaticWidget.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
                         ],
-                        dividers: [],
                         handlers: {
                             "L1": [ "freqswap", ["XPDR"] ],
                             "L2": [ "propsel", ["XPDRS"] ],
@@ -710,8 +782,10 @@ var Module = {
         foreach (var widget; me.mode.pages[me.page].widgets) {
             widget.draw(me.mcdu);
         }
-        foreach (var d; currentPage.dividers) {
-            me.mcdu.showDivider(d);
+        if (contains(currentPage, "dividers")) {
+            foreach (var d; currentPage.dividers) {
+                me.mcdu.showDivider(d);
+            }
         }
         me.drawFocusBox();
     },
@@ -849,8 +923,6 @@ var MCDU = {
     },
 
     makeModule: {
-        "RADIO": func (mcdu) { return Module.new(mcdu, "RADIO", 1); },
-        "XPDR": func (mcdu) { return Module.new(mcdu, "XPDR", 1); },
         "NAV1":  func (mcdu) { return Module.new(mcdu, "NAV", 1); },
         "NAV2":  func (mcdu) { return Module.new(mcdu, "NAV", 2); },
         "COM1":  func (mcdu) { return Module.new(mcdu, "COM", 1); },
@@ -879,7 +951,11 @@ var MCDU = {
             me.activeModule.deactivate();
         }
         if (typeof(module) == "scalar") {
-            me.activeModule = me.makeModule[module](me);
+            var factory = me.makeModule[module];
+            if (factory == nil) {
+                factory = func (mcdu) { return Module.new(mcdu, module, 0); };
+            }
+            me.activeModule = factory(me);
         }
         else {
             me.activeModule = module;
@@ -924,6 +1000,9 @@ var MCDU = {
         }
         else if (cmd == "RADIO") {
             me.activateModule("RADIO");
+        }
+        else if (cmd == "NAV") {
+            me.activateModule("NAVINDEX");
         }
         else if (cmd == "NEXT") {
             if (me.activeModule != nil) {
@@ -1103,12 +1182,9 @@ var MCDU = {
         if (y < 0 or y >= cells_y) {
             return;
         }
-        for (var p = 0; p < size(str); p += 1) {
-            var q = 0;
-            while (p + q < size(str) and str[p + q] > 127) {
-                q += 1;
-            }
-            var c = substr(str, p, q + 1);
+        for (var p = 0; p < size(str); ) {
+            var q = utf8NumBytes(str[p]);
+            var c = substr(str, p, q);
             p += q;
             if (x >= 0) {
                 me.screenbuf[i] = [c, flags];
