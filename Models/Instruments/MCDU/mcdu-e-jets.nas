@@ -54,45 +54,44 @@ var xpdrModeLabels = [
 
 
 var widgetProps = {
-    # key      property                                             type
-    "NAV1A": [ "/instrumentation/nav[0]/frequencies/selected-mhz",  "NAV" ],
-    "NAV1S": [ "/instrumentation/nav[0]/frequencies/standby-mhz",   "NAV" ],
-    "NAV1ID": [ "/instrumentation/nav[0]/nav-id",                   "STR" ],
-    "DME1H": [ "/instrumentation/dme[0]/frequencies/source",       "DMEH" ],
-    "NAV1AUTO": [ "/fms/radio/nav-auto[0]",                       "ONOFF" ],
-    "NAV2A": [ "/instrumentation/nav[1]/frequencies/selected-mhz",  "NAV" ],
-    "NAV2S": [ "/instrumentation/nav[1]/frequencies/standby-mhz",   "NAV" ],
-    "NAV2ID": [ "/instrumentation/nav[1]/nav-id",                   "STR" ],
-    "DME2H": [ "/instrumentation/dme[1]/frequencies/source",       "DMEH" ],
-    "NAV2AUTO": [ "/fms/radio/nav-auto[1]",                       "ONOFF" ],
-    "COM1A": [ "/instrumentation/comm[0]/frequencies/selected-mhz", "COM" ],
-    "COM1S": [ "/instrumentation/comm[0]/frequencies/standby-mhz",  "COM" ],
-    "COM2A": [ "/instrumentation/comm[1]/frequencies/selected-mhz", "COM" ],
-    "COM2S": [ "/instrumentation/comm[1]/frequencies/standby-mhz",  "COM" ],
-    "ADF1A": [ "/instrumentation/adf[0]/frequencies/selected-khz",  "ADF" ],
-    "ADF1S": [ "/instrumentation/adf[0]/frequencies/standby-khz",   "ADF" ],
-    "ADF2A": [ "/instrumentation/adf[1]/frequencies/selected-khz",  "ADF" ],
-    "ADF2S": [ "/instrumentation/adf[1]/frequencies/standby-khz",   "ADF" ],
-    "XPDRA": [ "/instrumentation/transponder/id-code",             "XPDR" ],
-    "XPDRS": [ "/instrumentation/transponder/standby-id",          "XPDR" ],
-    "XPDRON": [ "/fms/radio/tcas-xpdr/enabled",                  "XPDRON" ],
-    "XPDRMD": [ "/fms/radio/tcas-xpdr/mode",                     "XPDRMD" ],
-    "FLTID": [ "/sim/multiplay/callsign",                           "STR" ],
-    "PALT": [ "/instrumentation/altimeter/pressure-alt-ft",         "ALT" ],
+    "NAV1A": "/instrumentation/nav[0]/frequencies/selected-mhz",
+    "NAV1S": "/instrumentation/nav[0]/frequencies/standby-mhz",
+    "NAV1ID": "/instrumentation/nav[0]/nav-id",
+    "DME1H": "/instrumentation/dme[0]/frequencies/source",
+    "NAV1AUTO": "/fms/radio/nav-auto[0]",
+    "NAV2A": "/instrumentation/nav[1]/frequencies/selected-mhz",
+    "NAV2S": "/instrumentation/nav[1]/frequencies/standby-mhz",
+    "NAV2ID": "/instrumentation/nav[1]/nav-id",
+    "DME2H": "/instrumentation/dme[1]/frequencies/source",
+    "NAV2AUTO": "/fms/radio/nav-auto[1]",
+    "COM1A": "/instrumentation/comm[0]/frequencies/selected-mhz",
+    "COM1S": "/instrumentation/comm[0]/frequencies/standby-mhz",
+    "COM2A": "/instrumentation/comm[1]/frequencies/selected-mhz",
+    "COM2S": "/instrumentation/comm[1]/frequencies/standby-mhz",
+    "ADF1A": "/instrumentation/adf[0]/frequencies/selected-khz",
+    "ADF1S": "/instrumentation/adf[0]/frequencies/standby-khz",
+    "ADF2A": "/instrumentation/adf[1]/frequencies/selected-khz",
+    "ADF2S": "/instrumentation/adf[1]/frequencies/standby-khz",
+    "XPDRA": "/instrumentation/transponder/id-code",
+    "XPDRS": "/instrumentation/transponder/standby-id",
+    "XPDRON": "/fms/radio/tcas-xpdr/enabled",
+    "XPDRMD": "/fms/radio/tcas-xpdr/mode",
+    "FLTID": "/sim/multiplay/callsign",
+    "PALT": "/instrumentation/altimeter/pressure-alt-ft",
 };
 
 var propTypes = {
-    # key        type     min    max
-    "COM":    [   "mhz",  118.0, 137.0 ],
-    "NAV":    [   "mhz",  108.0, 118.0 ],
-    "ADF":    [   "khz",  190.0, 999.0 ],
-    "XPDR":   [  "xpdr",    nil,   nil ],
-    "DMEH":   [  "dmeh",    nil,   nil ],
-    "ONOFF":  [  "bool",      0,     1 ],
-    "STR":    [   "str",    nil,   nil ],
+    # key       type        min    max  fmt
+    "COM":    [ "mhz",    118.0, 137.0 ],
+    "NAV":    [ "mhz",    108.0, 118.0 ],
+    "ADF":    [ "khz",    190.0, 999.0 ],
+    "XPDR":   [ "xpdr",     nil,   nil ],
+    "DMEH":   [ "dmeh",     nil,   nil ],
+    "ONOFF":  [ "bool",       0,     1 ],
+    "STR":    [ "str",      nil,   nil ],
     "XPDRON": [ "xpdron",     0,     1 ],
     "XPDRMD": [ "xpdrmd",     1,     4 ],
-    "ALT":    [    "ft",  -5000, 60000 ],
+    "ALT":    [ "ft",     -5000, 60000 ],
 };
 
 var validate = func (val, ty) {
@@ -101,13 +100,336 @@ var validate = func (val, ty) {
     return 1;
 };
 
+var BaseWidget = {
+    new: func (key, x, y, flags) {
+        return {
+            parents: [BaseWidget],
+            key: key,
+            prop: (key == nil) ? nil : (widgetProps[key]),
+            x: x,
+            y: y,
+            w: 0,
+            flags: flags
+        };
+    },
+
+    getW: func () {
+        return me.w;
+    },
+
+    getH: func () {
+        return 1;
+    },
+
+    getL: func () {
+        return me.x;
+    },
+
+    getT: func () {
+        return me.y;
+    },
+
+    # Draw the widget to the given MCDU.
+    draw: func (mcdu) {
+    },
+
+    # Parse a raw string into a formatted value.
+    # Return the parsed value, or nil if the parse failed.
+    parse: func (val) {
+        return nil;
+    },
+
+    # Respond to a value-set request.
+    # Return value as written to the property.
+    set: func (val) {
+        val = me.parse(val);
+        if (val != nil) {
+            setprop(me.prop, val);
+        }
+        return val;
+    },
+
+    # Process a dialling event.
+    # Return updated value as written to the property, or nil if dialling
+    # is not supported.
+    dial: func (digit) {
+        return nil;
+    },
+
+    # Process a cycle event.
+    # Return updated value as written to the property, or nil if cycling is
+    # not supported.
+    cycle: func () {
+        return nil;
+    },
+};
+
+var StaticWidget = {
+    new: func (x, y, txt, flags) {
+        var m = BaseWidget.new(nil, x, y, flags);
+        m.parents = [StaticWidget, BaseWidget];
+        m.w = size(txt);
+        m.txt = txt;
+        return m;
+    },
+
+    draw: func (mcdu) {
+        mcdu.print(me.x, me.y, me.txt, me.flags);
+    },
+};
+
+var ToggleWidget = {
+    new: func (key, x, y, flags, txt) {
+        var m = BaseWidget.new(key, x, y, flags);
+        m.parents = [ToggleWidget, BaseWidget];
+        m.w = size(txt);
+        m.txt = txt;
+        m.clear = "";
+        while (size(m.clear) < size(txt)) {
+            m.clear ~= " ";
+        }
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        mcdu.print(me.x, me.y, val ? me.txt : me.clear, me.flags);
+    },
+};
+
+var FormatWidget = {
+    new: func (key, x, y, flags, w, fmt = nil) {
+        var m = BaseWidget.new(key, x, y, flags);
+        m.parents = [FormatWidget, BaseWidget];
+        m.w = w;
+        if (fmt == nil) { fmt = "%" ~ w ~ "s"; }
+        m.fmt = fmt;
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
+    },
+};
+
+var StringWidget = {
+    new: func (key, x, y, flags, w) {
+        var m = BaseWidget.new(key, x, y, flags);
+        m.parents = [StringWidget, BaseWidget];
+        m.w = w;
+        return m;
+    },
+
+    parse: func (val) {
+        return val;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        if (size(val) > me.w) {
+            val = substr(val, 0, me.w);
+        }
+        if (size(val) < me.w) {
+            if (me.x >= cells_x / 2) {
+                # right-align
+                val = sprintf("%" ~ me.w ~ "s", val);
+            }
+            else {
+                # left-align
+                val = sprintf("%-" ~ me.w ~ "s", val);
+            }
+        }
+        mcdu.print(me.x, me.y, val, me.flags);
+    },
+};
+
+var CycleWidget = {
+    new: func (key, x, y, flags, values = nil, labels = nil) {
+        if (values == nil) { values = [0, 1]; }
+        if (labels == nil) { labels = ["OFF", "ON"]; }
+        var m = BaseWidget.new(key, x, y, flags);
+        m.parents = [CycleWidget, BaseWidget];
+        m.values = values;
+        m.labels = labels;
+        m.w = -1;
+        foreach (var val; values) {
+            var label = (typeof(labels) == "func") ? labels(val) : labels[val];
+            m.w += size(label) + 1;
+        }
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        var x = me.x;
+        foreach (var v; me.values) {
+            var label = (typeof(me.labels) == "func") ? me.labels(v) : me.labels[v];
+            if (label == nil) { continue; }
+            mcdu.print(x, me.y, label, (v == val) ? me.flags : 0);
+            x += size(label) + 1;
+        }
+    },
+
+    cycle: func () {
+        var val = getprop(me.prop);
+        # find the value in our values vector
+        var index = 0;
+        while (index < size(me.values) and me.values[index] != val) {
+            index += 1;
+        }
+        index += 1;
+
+        if (index >= size(me.values)) {
+            # wrap around
+            index = 0;
+        }
+
+        val = me.values[index];
+        setprop(me.prop, val);
+    },
+};
+
+var parseOctal = func (s) {
+    var val = 0;
+    for (var i = 0; i < size(s); i += 1) {
+        val = val * 8;
+        var c = s[i];
+        if (c < 48 or c > 55) {
+            return nil;
+        }
+        val += c - 48;
+    }
+    return val;
+};
+
+var TransponderWidget = {
+    new: func (key, x, y, flags) {
+        var m = BaseWidget.new(key, x, y, flags);
+        m.parents = [TransponderWidget, BaseWidget];
+        m.w = 4;
+        return m;
+    },
+
+    parse: func (val) {
+        val = parseOctal(val);
+        if (val == nil or val < 0 or val > 0o7777) { return nil; }
+        val = sprintf("%04o", val);
+        return val;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        printf("Prop: %s = %s (%s)", me.prop, val, typeof(val));
+        mcdu.print(me.x, me.y, val, me.flags);
+    },
+
+    dial: func (digit) {
+        var val = getprop(me.prop);
+        val = ('0o' ~ val) + 0;
+
+        if (digit == 1) {
+            val = (val & 0o7770) | ((val + 1) & 0o7)
+        }
+        else if (digit == 2) {
+            val = (val & 0o7707) | ((val + 0o10) & 0o70)
+        }
+        else if (digit == 3) {
+            val = (val & 0o7077) | ((val + 0o100) & 0o700)
+        }
+        else if (digit == 4) {
+            val = (val & 0o0777) | ((val + 0o1000) & 0o7000)
+        }
+        else if (digit == -1) {
+            val = (val & 0o7770) | ((val - 1) & 0o7)
+        }
+        else if (digit == -2) {
+            val = (val & 0o7707) | ((val - 0o10) & 0o70)
+        }
+        else if (digit == -3) {
+            val = (val & 0o7077) | ((val - 0o100) & 0o700)
+        }
+        else if (digit == -4) {
+            val = (val & 0o0777) | ((val - 0o1000) & 0o7000)
+        }
+
+        setprop(me.prop, sprintf("%04o", val));
+    },
+};
+
+
+var FreqWidget = {
+    new: func (key, x, y, flags, ty = nil) {
+        var m = BaseWidget.new(key, x, y, flags);
+        m.parents = [FreqWidget, BaseWidget];
+        if (ty == nil) {
+            ty = substr(key, 0, 3);
+        }
+        m.mode = ty;
+        if (ty == "COM") {
+            m.w = 7;
+            m.amounts = [0.01, 0.1, 1.0, 10.0];
+            m.min = 118.0;
+            m.max = 137.0;
+            m.fmt = "%7.3f";
+        }
+        else if (ty == "NAV") {
+            m.w = 6;
+            m.amounts = [0.01, 0.1, 1.0, 10.0];
+            m.min = 108.0;
+            m.max = 118.0;
+            m.fmt = "%6.2f";
+        }
+        else if (ty == "ADF") {
+            m.w = 5;
+            m.amounts = [0.1, 1, 10, 100];
+            m.min = 190.0;
+            m.max = 999.9;
+            m.fmt = "%5.1f";
+        }
+        return m;
+    },
+
+    parse: func (val) {
+        if (val >= me.min and val <= me.max) { return val; }
+        if (val + 100 >= me.min and val + 100 <= me.max and me.mode != "ADF") { return val + 100; }
+        if (val / 10.0 >= me.min and val / 10.0 <= me.max) { return val / 10.0; }
+        if (val / 100.0 >= me.min and val / 100.0 <= me.max) { return val / 100.0; }
+        if (val / 10.0 + 100 >= me.min and val / 10.0 + 100 <= me.max and me.mode != "ADF") { return val / 10.0 + 100.0; }
+        if (val / 100.0 + 100 >= me.min and val / 100.0 + 100 <= me.max and me.mode != "ADF") { return val / 100.0 + 100.0; }
+        return nil;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
+    },
+
+    dial: func (digit) {
+        if (digit == 0) {
+            return;
+        }
+        var adigit = math.abs(digit) - 1;
+        var amount = me.amounts[adigit];
+        var val = getprop(me.prop);
+        if (digit > 0) {
+            val = math.min(me.max, val + amount);
+        }
+        else {
+            val = math.max(me.min, val - amount);
+        }
+        setprop(me.prop, val);
+    },
+};
+
 var Module = {
     new: func (mcdu, mode, n) {
         var m = { parents: [Module] };
         m.mcdu = mcdu;
         m.page = 0;
         m.active = 0;
-        m.listeners = {};
+        m.listeners = [];
+        var modeFactory = Module.modes[mode];
         m.mode = (Module.modes[mode])(n);
         m.title = m.mode.title;
         m.selectedKey = nil;
@@ -163,48 +485,52 @@ var Module = {
                 title: "RADIO",
                 pages: [
                     {
-                        widgets: {
-                            #               x   y      fmt                     flags  w
-                            "COM1A":    [[  1,  2, "%7.3f",  mcdu_large |  mcdu_green, 7 ]],
-                            "COM1S":    [[  1,  4, "%7.3f",  mcdu_large | mcdu_yellow, 7 ]],
-                            "COM2A":    [[ 16,  2, "%7.3f",  mcdu_large |  mcdu_green, 7 ]],
-                            "COM2S":    [[ 16,  4, "%7.3f",  mcdu_large | mcdu_yellow, 7 ]],
-                            "NAV1A":    [[  1,  6, "%6.2f",  mcdu_large |  mcdu_green, 6 ]],
-                            "NAV1S":    [[  1,  8, "%6.2f",  mcdu_large | mcdu_yellow, 6 ]],
-                            "NAV2A":    [[ 17,  6, "%6.2f",  mcdu_large |  mcdu_green, 6 ]],
-                            "NAV2S":    [[ 17,  8, "%6.2f",  mcdu_large | mcdu_yellow, 6 ]],
-                            "XPDRA":    [[ 19, 10, "%04s",   mcdu_large |  mcdu_green, 4 ]],
-                            "NAV1AUTO": [[  8,  5, "?FMS",    mcdu_large |  mcdu_blue, 4 ],
-                                         [  8,  6, "?AUTO",   mcdu_large |  mcdu_blue, 4 ]],
-                            "NAV2AUTO": [[ 12,  5, "?FMS",    mcdu_large |  mcdu_blue, 4 ],
-                                         [ 12,  6, "?AUTO",   mcdu_large |  mcdu_blue, 4 ]],
-                            "XPDRON":   [[  1, 12, "XPDRON", mcdu_large | mcdu_green, 10 ]],
-                        },
-                        static: [
-                            [  0,  1, up_down_arrow,            mcdu_large | mcdu_white ],
-                            [  1,  1, "COM1",                   mcdu_white ],
-                            [  0,  4, left_triangle,            mcdu_large | mcdu_white ],
+                        widgets: [
+                            FreqWidget.new("COM1A",  1, 2, mcdu_large | mcdu_green),
+                            FreqWidget.new("COM1S",  1, 4, mcdu_large | mcdu_yellow),
+                            FreqWidget.new("COM2A", 16, 2, mcdu_large | mcdu_green),
+                            FreqWidget.new("COM2S", 16, 4, mcdu_large | mcdu_yellow),
 
-                            [ 23,  1, up_down_arrow,            mcdu_large | mcdu_white ],
-                            [ 19,  1, "COM2",                   mcdu_white ],
-                            [ 23,  4, right_triangle,           mcdu_large | mcdu_white ],
+                            FreqWidget.new("NAV1A",  1, 6, mcdu_large | mcdu_green),
+                            FreqWidget.new("NAV1S",  1, 8, mcdu_large | mcdu_yellow),
+                            FreqWidget.new("NAV2A", 17, 6, mcdu_large | mcdu_green),
+                            FreqWidget.new("NAV2S", 17, 8, mcdu_large | mcdu_yellow),
 
-                            [  0,  5, up_down_arrow,            mcdu_large | mcdu_white ],
-                            [  1,  5, "NAV1",                   mcdu_white ],
-                            [  0,  8, left_triangle,            mcdu_large | mcdu_white ],
+                            TransponderWidget.new("XPDRA", 19, 10, mcdu_large | mcdu_green),
 
-                            [ 23,  5, up_down_arrow,            mcdu_large | mcdu_white ],
-                            [ 19,  5, "NAV2",                   mcdu_white ],
-                            [ 23,  8, right_triangle,           mcdu_large | mcdu_white ],
+                            ToggleWidget.new("NAV1AUTO",  8, 5, mcdu_large | mcdu_blue, "FMS"),
+                            ToggleWidget.new("NAV1AUTO",  8, 6, mcdu_large | mcdu_blue, "AUTO"),
+                            ToggleWidget.new("NAV2AUTO", 12, 5, mcdu_large | mcdu_blue, "FMS"),
+                            ToggleWidget.new("NAV2AUTO", 12, 6, mcdu_large | mcdu_blue, "AUTO"),
 
-                            [ 19,  9, "XPDR",                   mcdu_white ],
-                            [ 23, 10, right_triangle,           mcdu_large | mcdu_white ],
-                            [ 18, 11, "IDENT",                  mcdu_white ],
-                            [ 18, 12, "IDENT",                  mcdu_large | mcdu_white ],
-                            [ 23, 12, black_square,             mcdu_large | mcdu_white ],
-                            [  0, 10, left_triangle,            mcdu_large | mcdu_white ],
-                            [  1, 10, "TCAS/XPDR",              mcdu_large | mcdu_white ],
-                            [  0, 12, left_right_arrow,         mcdu_large | mcdu_white ],
+                            CycleWidget.new("XPDRON", 1, 12, mcdu_large | mcdu_green,
+                                [0, 1],
+                                func (n) { return (n ? xpdrModeLabels[getprop(widgetProps["XPDRMD"])] : "STBY"); }),
+
+                            StaticWidget.new(  1,  1, "COM1",                   mcdu_white ),
+                            StaticWidget.new(  0,  2, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticWidget.new(  0,  4, left_triangle,            mcdu_large | mcdu_white ),
+
+                            StaticWidget.new( 19,  1, "COM2",                   mcdu_white ),
+                            StaticWidget.new( 23,  2, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23,  4, right_triangle,           mcdu_large | mcdu_white ),
+
+                            StaticWidget.new(  1,  5, "NAV1",                   mcdu_white ),
+                            StaticWidget.new(  0,  6, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticWidget.new(  0,  8, left_triangle,            mcdu_large | mcdu_white ),
+
+                            StaticWidget.new( 19,  5, "NAV2",                   mcdu_white ),
+                            StaticWidget.new( 23,  6, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23,  8, right_triangle,           mcdu_large | mcdu_white ),
+
+                            StaticWidget.new( 19,  9, "XPDR",                   mcdu_white ),
+                            StaticWidget.new( 23, 10, right_triangle,           mcdu_large | mcdu_white ),
+                            StaticWidget.new( 18, 11, "IDENT",                  mcdu_white ),
+                            StaticWidget.new( 18, 12, "IDENT",                  mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23, 12, black_square,             mcdu_large | mcdu_white ),
+
+                            StaticWidget.new(  1, 10, "TCAS/XPDR",              mcdu_large | mcdu_white ),
+                            StaticWidget.new(  0, 12, left_right_arrow,         mcdu_large | mcdu_white ),
                         ],
                         dividers: [0, 1, 3, 4],
                         handlers: {
@@ -223,18 +549,15 @@ var Module = {
                         }
                     },
                     {
-                        widgets: {
-                            #            x   y      fmt                     flags  w
-                            "ADF1A": [[  1,  2, "%5.1f", mcdu_large |  mcdu_green, 5 ]],
-                            "ADF1S": [[  1,  4, "%5.1f", mcdu_large | mcdu_yellow, 5 ]],
-                            "ADF2A": [[ 18,  2, "%5.1f", mcdu_large |  mcdu_green, 5 ]],
-                            "ADF2S": [[ 18,  4, "%5.1f", mcdu_large | mcdu_yellow, 5 ]],
-                        },
-                        static: [
-                            [ 1, 1, "ADF1",         mcdu_white ],
-                            [ 0, 4, left_triangle,  mcdu_large | mcdu_white ],
-                            [19, 1, "ADF2",         mcdu_white ],
-                            [23, 4, right_triangle, mcdu_large | mcdu_white ],
+                        widgets: [
+                            FreqWidget.new("ADF1A",  1, 2, mcdu_large | mcdu_green),
+                            FreqWidget.new("ADF1S",  1, 4, mcdu_large | mcdu_yellow),
+                            FreqWidget.new("ADF2A", 18, 2, mcdu_large | mcdu_green),
+                            FreqWidget.new("ADF2S", 18, 4, mcdu_large | mcdu_yellow),
+                            StaticWidget.new( 1, 1, "ADF1",         mcdu_white ),
+                            StaticWidget.new( 0, 4, left_triangle,  mcdu_large | mcdu_white ),
+                            StaticWidget.new(19, 1, "ADF2",         mcdu_white ),
+                            StaticWidget.new(23, 4, right_triangle, mcdu_large | mcdu_white ),
                         ],
                         dividers: [0, 1, 2, 3, 4],
                         handlers: {
@@ -248,28 +571,25 @@ var Module = {
             };
         },
         "NAV": func (n) {
-            var widgets = {};
-            #                                 x   y      fmt         flags                     w
-            widgets["NAV" ~ n ~ "A"] =    [[  1,  2, "%6.2f",        mcdu_large |  mcdu_green, 6 ]];
-            widgets["NAV" ~ n ~ "S"] =    [[  1,  4, "%6.2f",        mcdu_large | mcdu_yellow, 6 ]];
-            widgets["DME" ~ n ~ "H"] =    [[ 17,  4, "OFFON",        mcdu_large |  mcdu_green, 6 ]];
-            widgets["NAV" ~ n ~ "AUTO"] = [[ 17, 10, "OFFON",        mcdu_large |  mcdu_green, 6 ]];
             return {
                 title: "NAV " ~ n,
                 pages: [
                     {
-                        widgets: widgets,
-                        static: [
-                            [  1,  1, "ACTIVE",                 mcdu_white ],
-                            [  0,  2, up_down_arrow, mcdu_large | mcdu_white ],
-                            [  1,  3, "PRESET",                 mcdu_white ],
-                            [  0,  4, left_triangle, mcdu_large | mcdu_white ],
-                            [ 15,  3, "DME HOLD",               mcdu_white ],
-                            [ 15,  9, "FMS AUTO",               mcdu_white ],
-                            [  0, 12, left_triangle, mcdu_large | mcdu_white ],
-                            [  1, 12, "MEMORY", mcdu_large | mcdu_white ],
-                            [ 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ],
-                            [ 23, 12, right_triangle, mcdu_large | mcdu_white ],
+                        widgets: [
+                            FreqWidget.new("NAV" ~ n ~ "A",      1,  2, mcdu_large |  mcdu_green),
+                            FreqWidget.new("NAV" ~ n ~ "S",      1,  4, mcdu_large |  mcdu_yellow),
+                            CycleWidget.new("DME" ~ n ~ "H",    17, 4, mcdu_large | mcdu_green),
+                            CycleWidget.new("NAV" ~ n ~ "AUTO", 17, 10, mcdu_large | mcdu_green),
+                            StaticWidget.new(  1,  1, "ACTIVE",                 mcdu_white ),
+                            StaticWidget.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1,  3, "PRESET",                 mcdu_white ),
+                            StaticWidget.new(  0,  4, left_triangle, mcdu_large | mcdu_white ),
+                            StaticWidget.new( 15,  3, "DME HOLD",               mcdu_white ),
+                            StaticWidget.new( 15,  9, "FMS AUTO",               mcdu_white ),
+                            StaticWidget.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
+                            StaticWidget.new( 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
                         ],
                         dividers: [],
                         handlers: {
@@ -284,28 +604,25 @@ var Module = {
             };
         },
         "COM": func (n) {
-            var widgets = {};
-            #                                 x   y      fmt         flags                     w
-            widgets["COM" ~ n ~ "A"] =    [[  1,  2, "%7.3f",        mcdu_large |  mcdu_green, 7 ]];
-            widgets["COM" ~ n ~ "S"] =    [[  1,  4, "%7.3f",        mcdu_large | mcdu_yellow, 7 ]];
             return {
                 title: "COM " ~ n,
                 pages: [
                     {
-                        widgets: widgets,
-                        static: [
-                            [  1,  1, "ACTIVE",                 mcdu_white ],
-                            [  0,  2, up_down_arrow, mcdu_large | mcdu_white ],
-                            [  1,  3, "PRESET",                 mcdu_white ],
-                            [  0,  4, left_triangle, mcdu_large | mcdu_white ],
-                            [  1,  5, "MEM TUNE",               mcdu_white ],
-                            [ 16,  1, "SQUELCH",                mcdu_white ],
-                            [ 19,  3, "MODE",                   mcdu_white ],
-                            [ 19,  5, "FREQ",                   mcdu_white ],
-                            [  0, 12, left_triangle, mcdu_large | mcdu_white ],
-                            [  1, 12, "MEMORY", mcdu_large | mcdu_white ],
-                            [ 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ],
-                            [ 23, 12, right_triangle, mcdu_large | mcdu_white ],
+                        widgets: [
+                            FreqWidget.new("COM" ~ n ~ "A",  1,  2, mcdu_large |  mcdu_green),
+                            FreqWidget.new("COM" ~ n ~ "S",  1,  4, mcdu_large | mcdu_yellow),
+                            StaticWidget.new(  1,  1, "ACTIVE",                 mcdu_white ),
+                            StaticWidget.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1,  3, "PRESET",                 mcdu_white ),
+                            StaticWidget.new(  0,  4, left_triangle, mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1,  5, "MEM TUNE",               mcdu_white ),
+                            StaticWidget.new( 16,  1, "SQUELCH",                mcdu_white ),
+                            StaticWidget.new( 19,  3, "MODE",                   mcdu_white ),
+                            StaticWidget.new( 19,  5, "FREQ",                   mcdu_white ),
+                            StaticWidget.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
+                            StaticWidget.new( 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
                         ],
                         dividers: [],
                         handlers: {
@@ -318,33 +635,30 @@ var Module = {
             };
         },
         "XPDR": func (n) {
-            var widgets = {};
-            #                         x   y     fmt         flags               w
-            widgets["XPDRA"] =    [[  1,  2, "%04s",  mcdu_large |  mcdu_green, 4 ]];
-            widgets["XPDRS"] =    [[  1,  4, "%04s",  mcdu_large | mcdu_yellow, 4 ]];
-            widgets["PALT"]  =    [[ 18,  2, "%5.0f", mcdu_large |  mcdu_green, 5 ]];
-            widgets["FLTID"] =    [[ 17,  4, "%6s",   mcdu_large |  mcdu_green, 6 ]];
             return {
                 title: "TCAS/XPDR",
                 pages: [
                     {
-                        widgets: widgets,
-                        static: [
-                            [  1,  1, "ACTIVE",                 mcdu_white ],
-                            [  0,  2, up_down_arrow,            mcdu_large | mcdu_white ],
-                            [  1,  3, "PRESET",                 mcdu_white ],
-                            [  0,  4, left_triangle,            mcdu_large | mcdu_white ],
-                            [ 11,  1, "PRESSURE ALT",           mcdu_white ],
-                            [ 17,  3, "FLT ID",                 mcdu_white ],
-                            [ 23,  4, right_triangle,           mcdu_large | mcdu_white ],
-                            [ 19,  5, "FREQ",                   mcdu_white ],
-                            [  1,  9, "XPDR SEL",               mcdu_large | mcdu_white ],
-                            [  1, 10, "XPDR 1",                 mcdu_large | mcdu_green ],
-                            [  8, 10, "XPDR 2",                 mcdu_white ],
-                            [ 18, 10, "IDENT",                  mcdu_large | mcdu_white ],
-                            [ 23, 10, black_square,             mcdu_large | mcdu_white ],
-                            [ 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ],
-                            [ 23, 12, right_triangle,           mcdu_large | mcdu_white ],
+                        widgets: [
+                            TransponderWidget.new("XPDRA",  1,  2, mcdu_large |  mcdu_green),
+                            TransponderWidget.new("XPDRS",  1,  4, mcdu_large | mcdu_yellow),
+                            FormatWidget.new("PALT", 18, 2, mcdu_large | mcdu_green, 5, "%5.0f"),
+                            StringWidget.new("FLTID", 17, 4, mcdu_large | mcdu_green, 6),
+                            StaticWidget.new(  1,  1, "ACTIVE",                 mcdu_white ),
+                            StaticWidget.new(  0,  2, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1,  3, "PRESET",                 mcdu_white ),
+                            StaticWidget.new(  0,  4, left_triangle,            mcdu_large | mcdu_white ),
+                            StaticWidget.new( 11,  1, "PRESSURE ALT",           mcdu_white ),
+                            StaticWidget.new( 17,  3, "FLT ID",                 mcdu_white ),
+                            StaticWidget.new( 23,  4, right_triangle,           mcdu_large | mcdu_white ),
+                            StaticWidget.new( 19,  5, "FREQ",                   mcdu_white ),
+                            StaticWidget.new(  1,  9, "XPDR SEL",               mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1, 10, "XPDR 1",                 mcdu_large | mcdu_green ),
+                            StaticWidget.new(  8, 10, "XPDR 2",                 mcdu_white ),
+                            StaticWidget.new( 18, 10, "IDENT",                  mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23, 10, black_square,             mcdu_large | mcdu_white ),
+                            StaticWidget.new( 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
                         ],
                         dividers: [],
                         handlers: {
@@ -356,15 +670,13 @@ var Module = {
                         }
                     },
                     {
-                        widgets: {
-                            "XPDRMD": [[ 1, 2, xpdrModeLabels, mcdu_large | mcdu_green, 23 ]]
-                        },
-                        static: [
-                            [  1,  1, "TCAS/XPDR MODE",         mcdu_white ],
-                            [  0,  2, black_square,             mcdu_large | mcdu_white ],
-                            [  1,  4, "ALT RANGE",              mcdu_white ],
-                            [ 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ],
-                            [ 23, 12, right_triangle,           mcdu_large | mcdu_white ],
+                        widgets: [
+                            CycleWidget.new("XPDRMD", 1, 2, mcdu_large | mcdu_green, [4,3,2,1], xpdrModeLabels),
+                            StaticWidget.new(  1,  1, "TCAS/XPDR MODE",         mcdu_white ),
+                            StaticWidget.new(  0,  2, black_square,             mcdu_large | mcdu_white ),
+                            StaticWidget.new(  1,  4, "ALT RANGE",              mcdu_white ),
+                            StaticWidget.new( 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ),
+                            StaticWidget.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
                         ],
                         dividers: [],
                         handlers: {
@@ -386,99 +698,39 @@ var Module = {
     },
 
     drawFreq: func (key) {
-        var wprop = widgetProps[key];
-        var val = getprop(wprop[0]);
-        var ty = propTypes[wprop[1]];
-        var widgets = me.mode.pages[me.page].widgets[key];
-        if (widgets == nil) { widgets = []; }
-        foreach (var widget; widgets) {
-            if (widgetProps[key][1] == "DMEH") {
-                # some magic needed unfortunately
-                if (substr(val, 0, size("/instrumentation/dme")) == "/instrumentation/dme" or val == '') {
-                    # assigned to its own freq = DME HOLD
-                    val = 1;
-                }
-                else {
-                    # assigned to something other than its own freq
-                    val = 0;
-                }
-            }
-            var str = "";
-            var f = widget[2];
-            if (typeof(f) == "scalar") {
-                if (substr(f, 0, 1) == "?") {
-                    if (val) {
-                        me.mcdu.print(widget[0], widget[1], substr(f, 1), widget[3]);
-                    }
-                    else {
-                        # clear out the space
-                        for (var x = 0; x < (size(f) - 1); x += 1) {
-                            me.mcdu.print(widget[0] + x, widget[1], " ", 0);
-                        }
-                    }
-                }
-                else if (f == "ONOFF") {
-                    me.mcdu.print(widget[0], widget[1], "ON", val ? widget[3] : 0);
-                    me.mcdu.print(widget[0] + 3, widget[1], "OFF", val ? 0 : widget[3]);
-                }
-                else if (f == "OFFON") {
-                    me.mcdu.print(widget[0], widget[1], "OFF", val ? 0 : widget[3]);
-                    me.mcdu.print(widget[0] + 4, widget[1], "ON", val ? widget[3] : 0);
-                }
-                else if (f == "XPDRON") {
-                    var mode = getprop(widgetProps["XPDRMD"][0]);
-                    var label = xpdrModeLabels[mode];
-                    me.mcdu.print(widget[0], widget[1], "STBY", val ? 0 : widget[3]);
-                    me.mcdu.print(widget[0] + 5, widget[1], label, val ? widget[3] : 0);
-                }
-                else {
-                    str = sprintf(f, val);
-                    me.mcdu.print(widget[0], widget[1], str, widget[3]);
-                }
-            }
-            else if (typeof(f) == "vector") {
-                var min = ty[1] or 0;
-                var max = ty[2] or size(f);
-                var x = widget[0];
-                var y = widget[1];
-
-                for (var v = min; v <= max; v += 1) {
-                    var str = f[v];
-                    if (x != widget[0] and x + size(str) > cells_x) {
-                        x = widget[0];
-                        y += 1;
-                    }
-                    me.mcdu.print(x, y, str, (val == v) ? widget[3] : 0);
-                    x += size(str) + 1;
-                }
-            }
-            else {
-                print("UNKNOWN FORMAT TYPE: ", typeof(f));
-                str = val ~ "";
-                me.mcdu.print(widget[0], widget[1], str, widget[3]);
+        foreach (var widget; me.mode.pages[me.page].widgets) {
+            if (widget.key == key) {
+                widget.draw(me.mcdu);
             }
         }
     },
 
+    findWidget: func (key) {
+        if (key == nil) {
+            return nil;
+        }
+        foreach (var widget; me.mode.pages[me.page].widgets) {
+            if (widget.key == key) {
+                return widget;
+            }
+        }
+        return nil;
+    },
+
     drawFocusBox: func () {
-        if (me.selectedKey == nil) {
+        var widget = me.findWidget(me.selectedKey);
+        if (widget == nil) {
             me.mcdu.clearFocusBox();
         }
         else {
-            var widget = me.mode.pages[me.page].widgets[me.selectedKey][0];
-            if (widget != nil) {
-                me.mcdu.setFocusBox(widget[0], widget[1], widget[4]);
-            }
+            me.mcdu.setFocusBox(widget.getL(), widget.getT(), widget.getW());
         }
     },
 
     redraw: func () {
         var currentPage = me.mode.pages[me.page];
-        foreach (var s; currentPage.static) {
-            me.mcdu.print(s[0], s[1], s[2], s[3]);
-        }
-        foreach (var key; keys(currentPage.widgets)) {
-            me.drawFreq(key);
+        foreach (var widget; me.mode.pages[me.page].widgets) {
+            widget.draw(me.mcdu);
         }
         foreach (var d; currentPage.dividers) {
             me.mcdu.showDivider(d);
@@ -488,29 +740,30 @@ var Module = {
 
     activate: func () {
         var activateFreq = func (k) {
-            me.listeners[k] = setlistener(widgetProps[k][0], func (changed) {
+            if (k == nil) {
+                return;
+            }
+            append(me.listeners, setlistener(widgetProps[k], func (changed) {
                 me.drawFreq(k);
-            });
+            }));
         };
         foreach (var page; me.mode.pages) {
-            foreach (var key; keys(page.widgets)) {
-                activateFreq(key);
+            foreach (var widget; page.widgets) {
+                activateFreq(widget.key);
             }
         }
     },
 
     deactivate: func () {
-        foreach (var key; keys(me.listeners)) {
-            if (me.listeners[key] != nil) {
-                removelistener(me.listeners[key]);
-                delete(me.listeners, key);
-            }
+        foreach (var listener; me.listeners) {
+            removelistener(listener);
         }
+        me.listeners = [];
     },
 
     freqswap: func (keyBase) {
-        var prop1 = widgetProps[keyBase ~ "A"][0];
-        var prop2 = widgetProps[keyBase ~ "S"][0];
+        var prop1 = widgetProps[keyBase ~ "A"];
+        var prop2 = widgetProps[keyBase ~ "S"];
         swapProps(prop1, prop2);
     },
 
@@ -530,141 +783,38 @@ var Module = {
             }
         }
         else {
-            var prop = widgetProps[key][0];
-            var ty = propTypes[widgetProps[key][1]];
-            if (validate(val, ty)) {
-                setprop(prop, val);
+            var widget = me.findWidget(key);
+            if (widget == nil) {
+                # TODO: issue error message in scratchpad
             }
             else {
-                # TODO: issue error message in scratchpad
+                # TODO: issue error message in scratchpad if parse failed
+                widget.set(val);
             }
         }
     },
 
     propcycle: func (key) {
-        var wprop = widgetProps[key];
-        var prop = wprop[0];
-        var ty = propTypes[wprop[1]];
-        var val = getprop(prop);
-        var min = ty[1];
-        var max = ty[2];
-        val += 1;
-        if (min != nil and max != nil and val > max) {
-            val = min;
-        }
-        if (min != nil and val < min) {
-            val = min;
-        }
-        setprop(prop, val);
+        var widget = me.findWidget(key);
+        widget.cycle();
         me.drawFreq(key);
     },
 
     propdial: func (digit) {
-        if (me.selectedKey == nil) {
-            return;
-        }
-        var prop = widgetProps[me.selectedKey];
-        var ps = me.mode.pages[me.page][me.selectedKey];
-        var val = getprop(prop[0]);
-        var ty = propTypes[prop[1]];
-
-        if (ty[0] == "xpdr") {
-            val = ('0o' ~ val) + 0;
-
-            if (digit == 1) {
-                val = (val & 0o7770) | ((val + 1) & 0o7)
-            }
-            else if (digit == 2) {
-                val = (val & 0o7707) | ((val + 0o10) & 0o70)
-            }
-            else if (digit == 3) {
-                val = (val & 0o7077) | ((val + 0o100) & 0o700)
-            }
-            else if (digit == 4) {
-                val = (val & 0o0777) | ((val + 0o1000) & 0o7000)
-            }
-            else if (digit == -1) {
-                val = (val & 0o7770) | ((val - 1) & 0o7)
-            }
-            else if (digit == -2) {
-                val = (val & 0o7707) | ((val - 0o10) & 0o70)
-            }
-            else if (digit == -3) {
-                val = (val & 0o7077) | ((val - 0o100) & 0o700)
-            }
-            else if (digit == -4) {
-                val = (val & 0o0777) | ((val - 0o1000) & 0o7000)
-            }
-
-            val = sprintf("%04o", val);
-        }
-        else if (ty[0] == "mhz") {
-            if (digit == 1) {
-                val += 0.01;
-            }
-            else if (digit == 2) {
-                val += 0.1;
-            }
-            else if (digit == 3) {
-                val += 1;
-            }
-            else if (digit == 4) {
-                val += 10;
-            }
-            else if (digit == -1) {
-                val -= 0.01;
-            }
-            else if (digit == -2) {
-                val -= 0.1;
-            }
-            else if (digit == -3) {
-                val -= 1;
-            }
-            else if (digit == -4) {
-                val -= 10;
-            }
-        }
-        else if (ty[0] == "khz") {
-            if (digit == 1) {
-                val += 0.5;
-            }
-            else if (digit == 2) {
-                val += 1;
-            }
-            else if (digit == 3) {
-                val += 10;
-            }
-            else if (digit == 4) {
-                val += 100;
-            }
-            else if (digit == -1) {
-                val -= 0.5;
-            }
-            else if (digit == -2) {
-                val -= 1;
-            }
-            else if (digit == -3) {
-                val -= 10;
-            }
-            else if (digit == -4) {
-                val -= 100;
-            }
-        }
-        if (ty[1] != nil) { val = math.max(ty[1], val); }
-        if (ty[2] != nil) { val = math.min(ty[2], val); }
-        setprop(prop[0], val);
+        var widget = me.findWidget(me.selectedKey);
+        widget.dial(digit);
         me.drawFreq(me.selectedKey);
     },
 
     toggle: func (key) {
-        var prop = widgetProps[key][0];
+        var prop = widgetProps[key];
         fgcommand("property-toggle", { "property": prop });
         me.drawFreq(key);
     },
 
     toggledme: func (key, target) {
-        var prop = widgetProps[key][0];
-        var target = widgetProps[target][0];
+        var prop = widgetProps[key];
+        var target = widgetProps[target];
         if (getprop(prop) != target) {
             setprop(prop, target);
         }
@@ -979,6 +1129,11 @@ var MCDU = {
     },
 
     print: func (x, y, str, flags) {
+        if (typeof(str) != "scalar") {
+            printf("Warning: tried to print object of type %s", typeof(str));
+            return;
+        }
+        str = str ~ '';
         var i = y * cells_x + x;
         if (y < 0 or y >= cells_y) {
             return;
