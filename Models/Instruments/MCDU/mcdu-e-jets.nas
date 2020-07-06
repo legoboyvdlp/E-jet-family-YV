@@ -40,6 +40,18 @@ var font_size_large = 26;
 
 var left_triangle = "◄";
 var right_triangle = "►";
+var left_right_arrow = "↔";
+var up_down_arrow = "↕";
+var black_square = "■";
+
+var xpdrModeLabels = [
+    "STBY",
+    "ALT-OFF",
+    "ALT-ON",
+    "TA",
+    "TA/RA",
+];
+
 
 var widgetProps = {
     # key      property                                             type
@@ -62,17 +74,25 @@ var widgetProps = {
     "ADF2A": [ "/instrumentation/adf[1]/frequencies/selected-khz",  "ADF" ],
     "ADF2S": [ "/instrumentation/adf[1]/frequencies/standby-khz",   "ADF" ],
     "XPDRA": [ "/instrumentation/transponder/id-code",             "XPDR" ],
+    "XPDRS": [ "/instrumentation/transponder/standby-id",          "XPDR" ],
+    "XPDRON": [ "/fms/radio/tcas-xpdr/enabled",                  "XPDRON" ],
+    "XPDRMD": [ "/fms/radio/tcas-xpdr/mode",                     "XPDRMD" ],
+    "FLTID": [ "/sim/multiplay/callsign",                           "STR" ],
+    "PALT": [ "/instrumentation/altimeter/pressure-alt-ft",         "ALT" ],
 };
 
 var propTypes = {
     # key        type     min    max
-    "COM":   [  "mhz",  118.0, 137.0 ],
-    "NAV":   [  "mhz",  108.0, 118.0 ],
-    "ADF":   [  "khz",  190.0, 999.0 ],
-    "XPDR":  [ "xpdr",    nil,   nil ],
-    "DMEH":  [ "dmeh",    nil,   nil ],
-    "ONOFF": [ "bool",      0,     1 ],
-    "STR":   [  "str",    nil,   nil ],
+    "COM":    [   "mhz",  118.0, 137.0 ],
+    "NAV":    [   "mhz",  108.0, 118.0 ],
+    "ADF":    [   "khz",  190.0, 999.0 ],
+    "XPDR":   [  "xpdr",    nil,   nil ],
+    "DMEH":   [  "dmeh",    nil,   nil ],
+    "ONOFF":  [  "bool",      0,     1 ],
+    "STR":    [   "str",    nil,   nil ],
+    "XPDRON": [ "xpdron",     0,     1 ],
+    "XPDRMD": [ "xpdrmd",     1,     4 ],
+    "ALT":    [    "ft",  -5000, 60000 ],
 };
 
 var validate = func (val, ty) {
@@ -145,45 +165,60 @@ var Module = {
                     {
                         widgets: {
                             #               x   y      fmt                     flags  w
-                            "COM1A":    [[  1,  2, "%7.3f", mcdu_large |  mcdu_green, 7 ]],
-                            "COM1S":    [[  1,  4, "%7.3f", mcdu_large | mcdu_yellow, 7 ]],
-                            "COM2A":    [[ 16,  2, "%7.3f", mcdu_large |  mcdu_green, 7 ]],
-                            "COM2S":    [[ 16,  4, "%7.3f", mcdu_large | mcdu_yellow, 7 ]],
-                            "NAV1A":    [[  1,  6, "%6.2f", mcdu_large |  mcdu_green, 6 ]],
-                            "NAV1S":    [[  1,  8, "%6.2f", mcdu_large | mcdu_yellow, 6 ]],
-                            "NAV2A":    [[ 17,  6, "%6.2f", mcdu_large |  mcdu_green, 6 ]],
-                            "NAV2S":    [[ 17,  8, "%6.2f", mcdu_large | mcdu_yellow, 6 ]],
-                            "XPDRA":    [[ 19, 10,  "%04d", mcdu_large |  mcdu_green, 4 ]],
-                            "NAV1AUTO": [[  8, 5, ["", "FMS "],  mcdu_large |  mcdu_blue, 4 ],
-                                         [  8, 6, ["", "AUTO"],  mcdu_large |  mcdu_blue, 4 ]],
-                            "NAV2AUTO": [[ 12, 5, ["", "FMS "],  mcdu_large |  mcdu_blue, 4 ],
-                                         [ 12, 6, ["", "AUTO"],  mcdu_large |  mcdu_blue, 4 ]],
+                            "COM1A":    [[  1,  2, "%7.3f",  mcdu_large |  mcdu_green, 7 ]],
+                            "COM1S":    [[  1,  4, "%7.3f",  mcdu_large | mcdu_yellow, 7 ]],
+                            "COM2A":    [[ 16,  2, "%7.3f",  mcdu_large |  mcdu_green, 7 ]],
+                            "COM2S":    [[ 16,  4, "%7.3f",  mcdu_large | mcdu_yellow, 7 ]],
+                            "NAV1A":    [[  1,  6, "%6.2f",  mcdu_large |  mcdu_green, 6 ]],
+                            "NAV1S":    [[  1,  8, "%6.2f",  mcdu_large | mcdu_yellow, 6 ]],
+                            "NAV2A":    [[ 17,  6, "%6.2f",  mcdu_large |  mcdu_green, 6 ]],
+                            "NAV2S":    [[ 17,  8, "%6.2f",  mcdu_large | mcdu_yellow, 6 ]],
+                            "XPDRA":    [[ 19, 10, "%04s",   mcdu_large |  mcdu_green, 4 ]],
+                            "NAV1AUTO": [[  8,  5, "?FMS",    mcdu_large |  mcdu_blue, 4 ],
+                                         [  8,  6, "?AUTO",   mcdu_large |  mcdu_blue, 4 ]],
+                            "NAV2AUTO": [[ 12,  5, "?FMS",    mcdu_large |  mcdu_blue, 4 ],
+                                         [ 12,  6, "?AUTO",   mcdu_large |  mcdu_blue, 4 ]],
+                            "XPDRON":   [[  1, 12, "XPDRON", mcdu_large | mcdu_green, 10 ]],
                         },
                         static: [
+                            [  0,  1, up_down_arrow,            mcdu_large | mcdu_white ],
                             [  1,  1, "COM1",                   mcdu_white ],
                             [  0,  4, left_triangle,            mcdu_large | mcdu_white ],
+
+                            [ 23,  1, up_down_arrow,            mcdu_large | mcdu_white ],
                             [ 19,  1, "COM2",                   mcdu_white ],
                             [ 23,  4, right_triangle,           mcdu_large | mcdu_white ],
+
+                            [  0,  5, up_down_arrow,            mcdu_large | mcdu_white ],
                             [  1,  5, "NAV1",                   mcdu_white ],
                             [  0,  8, left_triangle,            mcdu_large | mcdu_white ],
+
+                            [ 23,  5, up_down_arrow,            mcdu_large | mcdu_white ],
                             [ 19,  5, "NAV2",                   mcdu_white ],
                             [ 23,  8, right_triangle,           mcdu_large | mcdu_white ],
+
                             [ 19,  9, "XPDR",                   mcdu_white ],
                             [ 23, 10, right_triangle,           mcdu_large | mcdu_white ],
                             [ 18, 11, "IDENT",                  mcdu_white ],
-                            [ 18, 12, "IDENT" ~ right_triangle, mcdu_large | mcdu_white ],
+                            [ 18, 12, "IDENT",                  mcdu_large | mcdu_white ],
+                            [ 23, 12, black_square,             mcdu_large | mcdu_white ],
+                            [  0, 10, left_triangle,            mcdu_large | mcdu_white ],
+                            [  1, 10, "TCAS/XPDR",              mcdu_large | mcdu_white ],
+                            [  0, 12, left_right_arrow,         mcdu_large | mcdu_white ],
                         ],
                         dividers: [0, 1, 3, 4],
                         handlers: {
                             "L1": [ "freqswap", ["COM1"] ],
+                            "L2": [ "propsel", ["COM1S", "COM1"] ],
                             "L3": [ "freqswap", ["NAV1"] ],
-                            "R1": [ "freqswap", ["COM2"] ],
-                            "R3": [ "freqswap", ["NAV2"] ],
-                            "L2": [ "propsel", ["COM1S"] ],
                             "L4": [ "propsel", ["NAV1S", "NAV1"] ],
-                            "R2": [ "propsel", ["COM2S"] ],
+                            "L5": [ "goto", ["XPDR"] ],
+                            "L6": [ "toggle", ["XPDRON"] ],
+                            "R1": [ "freqswap", ["COM2"] ],
+                            "R2": [ "propsel", ["COM2S", "COM2"] ],
+                            "R3": [ "freqswap", ["NAV2"] ],
                             "R4": [ "propsel", ["NAV2S", "NAV2"] ],
-                            "R5": [ "propsel", ["XPDRA"] ],
+                            "R5": [ "propsel", ["XPDRA", "XPDR"] ],
                             "R6": [ "ident", [] ],
                         }
                     },
@@ -220,13 +255,15 @@ var Module = {
             widgets["DME" ~ n ~ "H"] =    [[ 17,  4, "OFFON",        mcdu_large |  mcdu_green, 6 ]];
             widgets["NAV" ~ n ~ "AUTO"] = [[ 17, 10, "OFFON",        mcdu_large |  mcdu_green, 6 ]];
             return {
-                title: "NAV" ~ n,
+                title: "NAV " ~ n,
                 pages: [
                     {
                         widgets: widgets,
                         static: [
                             [  1,  1, "ACTIVE",                 mcdu_white ],
+                            [  0,  2, up_down_arrow, mcdu_large | mcdu_white ],
                             [  1,  3, "PRESET",                 mcdu_white ],
+                            [  0,  4, left_triangle, mcdu_large | mcdu_white ],
                             [ 15,  3, "DME HOLD",               mcdu_white ],
                             [ 15,  9, "FMS AUTO",               mcdu_white ],
                             [  0, 12, left_triangle, mcdu_large | mcdu_white ],
@@ -246,6 +283,98 @@ var Module = {
                 ]
             };
         },
+        "COM": func (n) {
+            var widgets = {};
+            #                                 x   y      fmt         flags                     w
+            widgets["COM" ~ n ~ "A"] =    [[  1,  2, "%7.3f",        mcdu_large |  mcdu_green, 7 ]];
+            widgets["COM" ~ n ~ "S"] =    [[  1,  4, "%7.3f",        mcdu_large | mcdu_yellow, 7 ]];
+            return {
+                title: "COM " ~ n,
+                pages: [
+                    {
+                        widgets: widgets,
+                        static: [
+                            [  1,  1, "ACTIVE",                 mcdu_white ],
+                            [  0,  2, up_down_arrow, mcdu_large | mcdu_white ],
+                            [  1,  3, "PRESET",                 mcdu_white ],
+                            [  0,  4, left_triangle, mcdu_large | mcdu_white ],
+                            [  1,  5, "MEM TUNE",               mcdu_white ],
+                            [ 16,  1, "SQUELCH",                mcdu_white ],
+                            [ 19,  3, "MODE",                   mcdu_white ],
+                            [ 19,  5, "FREQ",                   mcdu_white ],
+                            [  0, 12, left_triangle, mcdu_large | mcdu_white ],
+                            [  1, 12, "MEMORY", mcdu_large | mcdu_white ],
+                            [ 14, 12, "RADIO 1/2", mcdu_large | mcdu_white ],
+                            [ 23, 12, right_triangle, mcdu_large | mcdu_white ],
+                        ],
+                        dividers: [],
+                        handlers: {
+                            "L1": [ "freqswap", ["COM" ~ n] ],
+                            "L2": [ "propsel", ["COM" ~ n ~ "S"] ],
+                            "R6": [ "ret", [] ],
+                        }
+                    }
+                ]
+            };
+        },
+        "XPDR": func (n) {
+            var widgets = {};
+            #                         x   y     fmt         flags               w
+            widgets["XPDRA"] =    [[  1,  2, "%04s",  mcdu_large |  mcdu_green, 4 ]];
+            widgets["XPDRS"] =    [[  1,  4, "%04s",  mcdu_large | mcdu_yellow, 4 ]];
+            widgets["PALT"]  =    [[ 18,  2, "%5.0f", mcdu_large |  mcdu_green, 5 ]];
+            widgets["FLTID"] =    [[ 17,  4, "%6s",   mcdu_large |  mcdu_green, 6 ]];
+            return {
+                title: "TCAS/XPDR",
+                pages: [
+                    {
+                        widgets: widgets,
+                        static: [
+                            [  1,  1, "ACTIVE",                 mcdu_white ],
+                            [  0,  2, up_down_arrow,            mcdu_large | mcdu_white ],
+                            [  1,  3, "PRESET",                 mcdu_white ],
+                            [  0,  4, left_triangle,            mcdu_large | mcdu_white ],
+                            [ 11,  1, "PRESSURE ALT",           mcdu_white ],
+                            [ 17,  3, "FLT ID",                 mcdu_white ],
+                            [ 23,  4, right_triangle,           mcdu_large | mcdu_white ],
+                            [ 19,  5, "FREQ",                   mcdu_white ],
+                            [  1,  9, "XPDR SEL",               mcdu_large | mcdu_white ],
+                            [  1, 10, "XPDR 1",                 mcdu_large | mcdu_green ],
+                            [  8, 10, "XPDR 2",                 mcdu_white ],
+                            [ 18, 10, "IDENT",                  mcdu_large | mcdu_white ],
+                            [ 23, 10, black_square,             mcdu_large | mcdu_white ],
+                            [ 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ],
+                            [ 23, 12, right_triangle,           mcdu_large | mcdu_white ],
+                        ],
+                        dividers: [],
+                        handlers: {
+                            "L1": [ "freqswap", ["XPDR"] ],
+                            "L2": [ "propsel", ["XPDRS"] ],
+                            "R2": [ "propsel", ["FLTID"] ],
+                            "R5": [ "ident", [] ],
+                            "R6": [ "ret", [] ],
+                        }
+                    },
+                    {
+                        widgets: {
+                            "XPDRMD": [[ 1, 2, xpdrModeLabels, mcdu_large | mcdu_green, 23 ]]
+                        },
+                        static: [
+                            [  1,  1, "TCAS/XPDR MODE",         mcdu_white ],
+                            [  0,  2, black_square,             mcdu_large | mcdu_white ],
+                            [  1,  4, "ALT RANGE",              mcdu_white ],
+                            [ 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ],
+                            [ 23, 12, right_triangle,           mcdu_large | mcdu_white ],
+                        ],
+                        dividers: [],
+                        handlers: {
+                            "L1": [ "propcycle", ["XPDRMD"] ],
+                            "R6": [ "ret", [] ],
+                        }
+                    }
+                ]
+            };
+        },
     },
 
     getNumPages: func () {
@@ -257,8 +386,12 @@ var Module = {
     },
 
     drawFreq: func (key) {
-        var val = getprop(widgetProps[key][0]);
-        foreach (var widget; me.mode.pages[me.page].widgets[key]) {
+        var wprop = widgetProps[key];
+        var val = getprop(wprop[0]);
+        var ty = propTypes[wprop[1]];
+        var widgets = me.mode.pages[me.page].widgets[key];
+        if (widgets == nil) { widgets = []; }
+        foreach (var widget; widgets) {
             if (widgetProps[key][1] == "DMEH") {
                 # some magic needed unfortunately
                 if (substr(val, 0, size("/instrumentation/dme")) == "/instrumentation/dme" or val == '') {
@@ -273,7 +406,18 @@ var Module = {
             var str = "";
             var f = widget[2];
             if (typeof(f) == "scalar") {
-                if (f == "ONOFF") {
+                if (substr(f, 0, 1) == "?") {
+                    if (val) {
+                        me.mcdu.print(widget[0], widget[1], substr(f, 1), widget[3]);
+                    }
+                    else {
+                        # clear out the space
+                        for (var x = 0; x < (size(f) - 1); x += 1) {
+                            me.mcdu.print(widget[0] + x, widget[1], " ", 0);
+                        }
+                    }
+                }
+                else if (f == "ONOFF") {
                     me.mcdu.print(widget[0], widget[1], "ON", val ? widget[3] : 0);
                     me.mcdu.print(widget[0] + 3, widget[1], "OFF", val ? 0 : widget[3]);
                 }
@@ -281,23 +425,32 @@ var Module = {
                     me.mcdu.print(widget[0], widget[1], "OFF", val ? 0 : widget[3]);
                     me.mcdu.print(widget[0] + 4, widget[1], "ON", val ? widget[3] : 0);
                 }
+                else if (f == "XPDRON") {
+                    var mode = getprop(widgetProps["XPDRMD"][0]);
+                    var label = xpdrModeLabels[mode];
+                    me.mcdu.print(widget[0], widget[1], "STBY", val ? 0 : widget[3]);
+                    me.mcdu.print(widget[0] + 5, widget[1], label, val ? widget[3] : 0);
+                }
                 else {
                     str = sprintf(f, val);
                     me.mcdu.print(widget[0], widget[1], str, widget[3]);
                 }
             }
             else if (typeof(f) == "vector") {
-                var fmt = "%" ~ widget[4] ~ "s";
-                if (val == nil) {
-                    str = sprintf(fmt, f[0]);
+                var min = ty[1] or 0;
+                var max = ty[2] or size(f);
+                var x = widget[0];
+                var y = widget[1];
+
+                for (var v = min; v <= max; v += 1) {
+                    var str = f[v];
+                    if (x != widget[0] and x + size(str) > cells_x) {
+                        x = widget[0];
+                        y += 1;
+                    }
+                    me.mcdu.print(x, y, str, (val == v) ? widget[3] : 0);
+                    x += size(str) + 1;
                 }
-                if (val) {
-                    str = sprintf(fmt, f[1]);
-                }
-                else {
-                    str = sprintf(fmt, f[0]);
-                }
-                me.mcdu.print(widget[0], widget[1], str, widget[3]);
             }
             else {
                 print("UNKNOWN FORMAT TYPE: ", typeof(f));
@@ -361,17 +514,19 @@ var Module = {
         swapProps(prop1, prop2);
     },
 
-    propsel: func (key, link = nil) {
+    propsel: func (key, link = nil, boxable = 1) {
         var val = me.mcdu.popScratchpad();
         if (val == "") {
-            if (me.selectedKey == key) {
-                if (link != nil) {
-                    me.mcdu.pushModule(link);
+            if (boxable) {
+                if (me.selectedKey == key) {
+                    if (link != nil) {
+                        me.mcdu.pushModule(link);
+                    }
                 }
-            }
-            else {
-                me.selectedKey = key;
-                me.drawFocusBox();
+                else {
+                    me.selectedKey = key;
+                    me.drawFocusBox();
+                }
             }
         }
         else {
@@ -384,6 +539,24 @@ var Module = {
                 # TODO: issue error message in scratchpad
             }
         }
+    },
+
+    propcycle: func (key) {
+        var wprop = widgetProps[key];
+        var prop = wprop[0];
+        var ty = propTypes[wprop[1]];
+        var val = getprop(prop);
+        var min = ty[1];
+        var max = ty[2];
+        val += 1;
+        if (min != nil and max != nil and val > max) {
+            val = min;
+        }
+        if (min != nil and val < min) {
+            val = min;
+        }
+        setprop(prop, val);
+        me.drawFreq(key);
     },
 
     propdial: func (digit) {
@@ -520,6 +693,7 @@ var Module = {
             "propdial": me.propdial,
             "freqswap": me.freqswap,
             "propsel": me.propsel,
+            "propcycle": me.propcycle,
             "toggle": me.toggle,
             "toggledme": me.toggledme,
             "ident": me.ident,
@@ -561,8 +735,11 @@ var MCDU = {
 
     makeModule: {
         "RADIO": func (mcdu) { return Module.new(mcdu, "RADIO", 1); },
+        "XPDR": func (mcdu) { return Module.new(mcdu, "XPDR", 1); },
         "NAV1":  func (mcdu) { return Module.new(mcdu, "NAV", 1); },
         "NAV2":  func (mcdu) { return Module.new(mcdu, "NAV", 2); },
+        "COM1":  func (mcdu) { return Module.new(mcdu, "COM", 1); },
+        "COM2":  func (mcdu) { return Module.new(mcdu, "COM", 2); },
     },
 
     pushModule: func (moduleName) {
@@ -671,7 +848,7 @@ var MCDU = {
                 elem.setFontSize(font_size_large);
                 elem.setFont("LiberationFonts/LiberationMono-Regular.ttf");
                 elem.setTranslation(x * cell_w + margin_left + cell_w * 0.5, y * cell_h + margin_top + cell_h);
-                elem.setAlignment('center-bottom');
+                elem.setAlignment('center-baseline');
                 append(me.screenbuf, [" ", 0]);
                 append(me.screenbufElems, elem);
                 i += 1;

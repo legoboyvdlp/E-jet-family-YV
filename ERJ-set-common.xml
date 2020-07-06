@@ -540,6 +540,18 @@
         <radio>
             <nav-auto type="bool">false</nav-auto>
             <nav-auto type="bool">false</nav-auto>
+            <tcas-xpdr>
+                <enabled type="bool">true</enabled>
+                <!--
+                                 TCAS XPDR
+                    0 = STBY     OFF  1 (standby)
+                    1 = ALT-OFF  OFF  4 (on, no altitude)
+                    2 = ALT-ON   OFF  5 (alt, on + altitude)
+                    3 = TA       TA   5
+                    4 = TA/RA    TARA 5
+                -->
+                <mode>4</mode>
+            </tcas-xpdr>
         </radio>
     </fms>
 
@@ -787,6 +799,19 @@
 			<nav-display n="0" type="int">0</nav-display>
 			<nav-display n="1" type="int">0</nav-display>
 		</nav-compass>
+
+        <tcas>
+            <serviceable type="bool">true</serviceable>
+            <inputs>
+                <mode type="int">3</mode>
+            </inputs>
+
+            <speaker>
+                <max-dist>2</max-dist>
+                <reference-dist>1</reference-dist>
+                <volume>1.0</volume>
+            </speaker>
+        </tcas>
 
 		<!-- See http://wiki.flightgear.org/index.php/GPWS -->
 
