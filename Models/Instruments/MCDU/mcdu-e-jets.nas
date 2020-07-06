@@ -52,17 +52,16 @@ var xpdrModeLabels = [
     "TA/RA",
 ];
 
-
 var widgetProps = {
     "NAV1A": "/instrumentation/nav[0]/frequencies/selected-mhz",
     "NAV1S": "/instrumentation/nav[0]/frequencies/standby-mhz",
     "NAV1ID": "/instrumentation/nav[0]/nav-id",
-    "DME1H": "/instrumentation/dme[0]/frequencies/source",
+    "DME1H": "/instrumentation/dme[0]/hold",
     "NAV1AUTO": "/fms/radio/nav-auto[0]",
     "NAV2A": "/instrumentation/nav[1]/frequencies/selected-mhz",
     "NAV2S": "/instrumentation/nav[1]/frequencies/standby-mhz",
     "NAV2ID": "/instrumentation/nav[1]/nav-id",
-    "DME2H": "/instrumentation/dme[1]/frequencies/source",
+    "DME2H": "/instrumentation/dme[1]/hold",
     "NAV2AUTO": "/fms/radio/nav-auto[1]",
     "COM1A": "/instrumentation/comm[0]/frequencies/selected-mhz",
     "COM1S": "/instrumentation/comm[0]/frequencies/standby-mhz",
@@ -78,26 +77,6 @@ var widgetProps = {
     "XPDRMD": "/fms/radio/tcas-xpdr/mode",
     "FLTID": "/sim/multiplay/callsign",
     "PALT": "/instrumentation/altimeter/pressure-alt-ft",
-};
-
-var propTypes = {
-    # key       type        min    max  fmt
-    "COM":    [ "mhz",    118.0, 137.0 ],
-    "NAV":    [ "mhz",    108.0, 118.0 ],
-    "ADF":    [ "khz",    190.0, 999.0 ],
-    "XPDR":   [ "xpdr",     nil,   nil ],
-    "DMEH":   [ "dmeh",     nil,   nil ],
-    "ONOFF":  [ "bool",       0,     1 ],
-    "STR":    [ "str",      nil,   nil ],
-    "XPDRON": [ "xpdron",     0,     1 ],
-    "XPDRMD": [ "xpdrmd",     1,     4 ],
-    "ALT":    [ "ft",     -5000, 60000 ],
-};
-
-var validate = func (val, ty) {
-    if (ty[1] != nil and val < ty[1]) return 0;
-    if (ty[2] != nil and val > ty[2]) return 0;
-    return 1;
 };
 
 var BaseWidget = {
@@ -320,7 +299,6 @@ var TransponderWidget = {
 
     draw: func (mcdu) {
         var val = getprop(me.prop);
-        printf("Prop: %s = %s (%s)", me.prop, val, typeof(val));
         mcdu.print(me.x, me.y, val, me.flags);
     },
 
@@ -595,7 +573,7 @@ var Module = {
                         handlers: {
                             "L1": [ "freqswap", ["NAV" ~ n] ],
                             "L2": [ "propsel", ["NAV" ~ n ~ "S"] ],
-                            "R2": [ "toggledme", ["DME" ~ n ~ "H", "NAV" ~ n ~ "A"] ],
+                            "R2": [ "toggle", ["DME" ~ n ~ "H"] ],
                             "R5": [ "toggle", ["NAV" ~ n ~ "AUTO"] ],
                             "R6": [ "ret", [] ],
                         }
@@ -812,18 +790,6 @@ var Module = {
         me.drawFreq(key);
     },
 
-    toggledme: func (key, target) {
-        var prop = widgetProps[key];
-        var target = widgetProps[target];
-        if (getprop(prop) != target) {
-            setprop(prop, target);
-        }
-        else {
-            setprop(prop, '');
-        }
-        me.drawFreq(key);
-    },
-        
     ident: func () {
         setprop("/instrumentation/transponder/inputs/ident-btn", 1);
     },
@@ -845,7 +811,6 @@ var Module = {
             "propsel": me.propsel,
             "propcycle": me.propcycle,
             "toggle": me.toggle,
-            "toggledme": me.toggledme,
             "ident": me.ident,
             "goto": me.goto,
             "ret": me.ret,
