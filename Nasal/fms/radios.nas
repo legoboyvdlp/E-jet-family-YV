@@ -63,7 +63,10 @@ setprop("/instrumentation/dme[1]/hold", 0);
 updateDmeHold(0);
 updateDmeHold(1);
 
-setlistener("sim/signals/fdm-initialized", func { update_xpdr(); });
+setlistener("sim/signals/fdm-initialized", func {
+    update_xpdr();
+});
+
 setlistener("/fms/radio/tcas-xpdr/stby", func { update_xpdr(); });
 setlistener("/fms/radio/tcas-xpdr/mode", func { update_xpdr(); });
 setlistener("/instrumentation/dme[0]/hold", func { updateDmeHold(0); });

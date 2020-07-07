@@ -86,6 +86,10 @@ var widgetProps = {
     "XPDRMD": "/fms/radio/tcas-xpdr/mode",
     "FLTID": "/sim/multiplay/callsign",
     "PALT": "/instrumentation/altimeter/pressure-alt-ft",
+    "GPSLAT": "/instrumentation/gps/indicated-latitude-deg",
+    "GPSLON": "/instrumentation/gps/indicated-longitude-deg",
+    "RAWLAT": "/position/latitude-deg",
+    "RAWLON": "/position/longitude-deg",
 };
 
 var BaseWidget = {
@@ -198,6 +202,32 @@ var FormatWidget = {
     draw: func (mcdu) {
         var val = getprop(me.prop);
         mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
+    },
+};
+
+var GeoWidget = {
+    new: func (key, x, y, latlon, flags) {
+        var m = BaseWidget.new(key, x, y, flags);
+        m.parents = [GeoWidget, BaseWidget];
+        if (latlon == "LAT") {
+            m.w = 8;
+            m.fmt = "%1s%02d°%04.1f";
+            m.dirs = ["S", "N"];
+        }
+        else {
+            m.w = 9;
+            m.fmt = "%1s%03d°%04.1f";
+            m.dirs = ["W", "E"];
+        }
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        var dir = (val < 0) ? (me.dirs[0]) : (me.dirs[1]);
+        var degs = math.abs(val);
+        var mins = math.fmod(degs * 60, 60);
+        mcdu.print(me.x, me.y, sprintf(me.fmt, dir, degs, mins), me.flags);
     },
 };
 
@@ -419,12 +449,20 @@ var Module = {
         var modeFactory = Module.modes[mode];
         var parentModule = mcdu.activeModule;
         var ptitle = nil;
+        var maxw = math.round(cells_x / 2) - 1;
         if (parentModule != nil) {
             ptitle = sprintf("%s %d/%d",
                 parentModule.mode.title,
                 parentModule.page + 1,
                 parentModule.getNumPages());
         }
+        if (ptitle != nil and size(ptitle) > maxw) {
+            ptitle = parentModule.mode.title;
+        }
+        if (ptitle != nil and size(ptitle) > maxw) {
+            ptitle = substr(ptitle, 0, maxw);
+        }
+
         m.mode = (Module.modes[mode])(ptitle, n);
         m.title = m.mode.title;
         m.selectedKey = nil;
@@ -516,6 +554,16 @@ var Module = {
                 pages: [
                     {
                         widgets: [
+                            StaticWidget.new(        1,  1, "LAST POS",              mcdu_white),
+                            GeoWidget.new("RAWLAT",  0,  2, "LAT",      mcdu_large | mcdu_green),
+                            GeoWidget.new("RAWLON",  9,  2, "LON",      mcdu_large | mcdu_green),
+                            StaticWidget.new(       19,  2, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticWidget.new(        1,  3, "---- REF  WPT",         mcdu_white),
+                            StaticWidget.new(        1,  5, "GPS1 POS",              mcdu_white),
+                            GeoWidget.new("GPSLAT",  0,  6, "LAT",      mcdu_large | mcdu_green),
+                            GeoWidget.new("GPSLON",  9,  6, "LON",      mcdu_large | mcdu_green),
+                            StaticWidget.new(       19,  6, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticWidget.new(        0, 12, left_triangle ~ "POS SENSORS", mcdu_large | mcdu_white),
                         ],
                         handlers: {
                         }
