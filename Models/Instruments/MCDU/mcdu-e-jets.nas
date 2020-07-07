@@ -913,6 +913,7 @@ var MCDU = {
             screenbufElems: [],
             activeModule: nil,
             moduleStack: [],
+            powered: 0,
             g: nil
         };
         m.initCanvas();
@@ -920,6 +921,20 @@ var MCDU = {
             m.handleCommand();
         });
         return m;
+    },
+
+    powerOn: func () {
+        if (!me.powered) {
+            me.powered = 1;
+            me.gotoModule("RADIO");
+        }
+    },
+
+    powerOff: func () {
+        if (me.powered) {
+            me.powered = 0;
+            me.gotoModule(nil);
+        }
     },
 
     makeModule: {
@@ -982,6 +997,10 @@ var MCDU = {
     },
 
     handleCommand: func () {
+        if (!me.powered) {
+            # if not powered, don't do anything
+            return;
+        }
         var cmd = me.commandprop.getValue();
         if (size(cmd) == 1) {
             # this is a "char" command
@@ -1205,4 +1224,14 @@ var mcdu1 = nil;
 setlistener("/sim/signals/fdm-initialized", func () {
     mcdu0 = MCDU.new(0);
     mcdu1 = MCDU.new(1);
+    setlistener("/systems/electrical/outputs/efis", func () {
+        if (getprop("/systems/electrical/outputs/efis") < 15.0) {
+            mcdu0.powerOff();
+            mcdu1.powerOff();
+        }
+        else {
+            mcdu0.powerOn();
+            mcdu1.powerOn();
+        }
+    });
 });
