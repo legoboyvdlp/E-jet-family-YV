@@ -61,6 +61,20 @@ var utf8NumBytes = func (c) {
     return 1;
 };
 
+var parseOctal = func (s) {
+    var val = 0;
+    for (var i = 0; i < size(s); i += 1) {
+        val = val * 8;
+        var c = s[i];
+        if (c < 48 or c > 55) {
+            return nil;
+        }
+        val += c - 48;
+    }
+    return val;
+};
+
+
 var xpdrModeLabels = [
     "STBY",
     "ALT-OFF",
@@ -69,7 +83,7 @@ var xpdrModeLabels = [
     "TA/RA",
 ];
 
-var widgetProps = {
+var keyProps = {
     # Radios
     "NAV1A": "/instrumentation/nav[0]/frequencies/selected-mhz",
     "NAV1S": "/instrumentation/nav[0]/frequencies/standby-mhz",
@@ -119,12 +133,12 @@ var widgetProps = {
     "POSLOADED3": "/fms/position-loaded[2]",
 };
 
-var BaseWidget = {
+var BaseView = {
     new: func (key, x, y, flags) {
         return {
-            parents: [BaseWidget],
+            parents: [BaseView],
             key: key,
-            prop: (key == nil) ? nil : (widgetProps[key]),
+            prop: (key == nil) ? nil : (keyProps[key]),
             x: x,
             y: y,
             w: 0,
@@ -151,182 +165,63 @@ var BaseWidget = {
     # Draw the widget to the given MCDU.
     draw: func (mcdu) {
     },
+};
+
+var BaseController = {
+    new: func (key) {
+        return {
+            parents: [BaseController],
+            key: key,
+            model: keyProps[key],
+        };
+    },
 
     # Parse a raw string into a formatted value.
     # Return the parsed value, or nil if the parse failed.
     parse: func (val) {
-        return nil;
+        return val;
     },
 
-    # Respond to a value-set request.
-    # Return value as written to the property.
+    # Pass a "set value" request to the underlying model.
     set: func (val) {
         val = me.parse(val);
         if (val != nil) {
-            setprop(me.prop, val);
+            setprop(me.model, val);
         }
         return val;
+    },
+
+    # Process a select event. The 'boxed' argument indicates that the
+    # controller's key is currently boxed.
+    # Return value indicates desired response:
+    # - nil -> no response necessary
+    # - ['box', $key ] -> box the given $key
+    # - ['redraw', $key ] -> redraw the given $key
+    # - ['goto', $target ] -> go to the $target page
+    # - ['ret'] -> return to the previous page
+    select: func (boxed) {
+        return nil;
+    },
+
+    # Process a send event.
+    # Scratchpad contents is sent as the value.
+    # Return updated scratchpad contents to indicate acceptance, or nil to
+    # keep scratchpad value unchanged and signal rejection.
+    send: func (val) {
+        return nil;
     },
 
     # Process a dialling event.
-    # Return updated value as written to the property, or nil if dialling
-    # is not supported.
     dial: func (digit) {
         return nil;
     },
-
-    # Process a cycle event.
-    # Return updated value as written to the property, or nil if cycling is
-    # not supported.
-    cycle: func () {
-        return nil;
-    },
 };
 
-var StaticWidget = {
-    new: func (x, y, txt, flags) {
-        var m = BaseWidget.new(nil, x, y, flags);
-        m.parents = [StaticWidget, BaseWidget];
-        m.w = size(txt);
-        m.txt = txt;
-        return m;
-    },
-
-    draw: func (mcdu) {
-        mcdu.print(me.x, me.y, me.txt, me.flags);
-    },
-};
-
-var ToggleWidget = {
-    new: func (key, x, y, flags, txt) {
-        var m = BaseWidget.new(key, x, y, flags);
-        m.parents = [ToggleWidget, BaseWidget];
-        m.w = size(txt);
-        m.txt = txt;
-        m.clear = "";
-        while (size(m.clear) < size(txt)) {
-            m.clear ~= " ";
-        }
-        return m;
-    },
-
-    parse: func (val) {
-        return !!val;
-    },
-
-    draw: func (mcdu) {
-        var val = getprop(me.prop);
-        mcdu.print(me.x, me.y, val ? me.txt : me.clear, me.flags);
-    },
-};
-
-var FormatWidget = {
-    new: func (key, x, y, flags, w, fmt = nil, mapping = nil) {
-        var m = BaseWidget.new(key, x, y, flags);
-        m.parents = [FormatWidget, BaseWidget];
-        m.mapping = mapping;
-        m.w = w;
-        if (fmt == nil) { fmt = "%" ~ w ~ "s"; }
-        m.fmt = fmt;
-        return m;
-    },
-
-    draw: func (mcdu) {
-        var val = getprop(me.prop);
-        if (me.mapping != nil) {
-            if (typeof(me.mapping) == "func") {
-                val = me.mapping(val);
-            }
-            else {
-                val = me.mapping[val];
-            }
-        }
-        mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
-    },
-};
-
-var GeoWidget = {
-    new: func (key, x, y, latlon, flags) {
-        var m = BaseWidget.new(key, x, y, flags);
-        m.parents = [GeoWidget, BaseWidget];
-        if (latlon == "LAT") {
-            m.w = 8;
-            m.fmt = "%1s%02d°%04.1f";
-            m.dirs = ["S", "N"];
-        }
-        else {
-            m.w = 9;
-            m.fmt = "%1s%03d°%04.1f";
-            m.dirs = ["W", "E"];
-        }
-        return m;
-    },
-
-    draw: func (mcdu) {
-        var val = getprop(me.prop);
-        var dir = (val < 0) ? (me.dirs[0]) : (me.dirs[1]);
-        var degs = math.abs(val);
-        var mins = math.fmod(degs * 60, 60);
-        mcdu.print(me.x, me.y, sprintf(me.fmt, dir, degs, mins), me.flags);
-    },
-};
-
-var StringWidget = {
-    new: func (key, x, y, flags, w) {
-        var m = BaseWidget.new(key, x, y, flags);
-        m.parents = [StringWidget, BaseWidget];
-        m.w = w;
-        return m;
-    },
-
-    parse: func (val) {
-        return val;
-    },
-
-    draw: func (mcdu) {
-        var val = getprop(me.prop);
-        if (size(val) > me.w) {
-            val = substr(val, 0, me.w);
-        }
-        if (size(val) < me.w) {
-            if (me.x >= cells_x / 2) {
-                # right-align
-                val = sprintf("%" ~ me.w ~ "s", val);
-            }
-            else {
-                # left-align
-                val = sprintf("%-" ~ me.w ~ "s", val);
-            }
-        }
-        mcdu.print(me.x, me.y, val, me.flags);
-    },
-};
-
-var CycleWidget = {
-    new: func (key, x, y, flags, values = nil, labels = nil) {
-        if (values == nil) { values = [0, 1]; }
-        if (labels == nil) { labels = ["OFF", "ON"]; }
-        var m = BaseWidget.new(key, x, y, flags);
-        m.parents = [CycleWidget, BaseWidget];
+var CycleController = {
+    new: func (key, values = [0, 1]) {
+        var m = BaseController.new(key);
+        m.parents = [CycleController, BaseController];
         m.values = values;
-        m.labels = labels;
-        m.w = -1;
-        foreach (var val; values) {
-            var label = (typeof(labels) == "func") ? labels(val) : labels[val];
-            m.w += size(label) + 1;
-        }
-        return m;
-    },
-
-    draw: func (mcdu) {
-        var val = getprop(me.prop);
-        var x = me.x;
-        foreach (var v; me.values) {
-            var label = (typeof(me.labels) == "func") ? me.labels(v) : me.labels[v];
-            if (label == nil) { continue; }
-            mcdu.print(x, me.y, label, (v == val) ? me.flags : 0);
-            x += size(label) + 1;
-        }
     },
 
     cycle: func () {
@@ -346,26 +241,24 @@ var CycleWidget = {
         val = me.values[index];
         setprop(me.prop, val);
     },
+
+    select: func (ignore) {
+        me.cycle();
+        return [ 'redraw', me.key ];
+    },
+
+    send: func (scratch) {
+        me.cycle();
+        return scratch;
+        # we're not rejecting the input, we just don't need scratchpad
+        # input
+    },
 };
 
-var parseOctal = func (s) {
-    var val = 0;
-    for (var i = 0; i < size(s); i += 1) {
-        val = val * 8;
-        var c = s[i];
-        if (c < 48 or c > 55) {
-            return nil;
-        }
-        val += c - 48;
-    }
-    return val;
-};
-
-var TransponderWidget = {
-    new: func (key, x, y, flags) {
-        var m = BaseWidget.new(key, x, y, flags);
-        m.parents = [TransponderWidget, BaseWidget];
-        m.w = 4;
+var TransponderController = {
+    new: func (key, x, y, flags, goto = nil) {
+        var m = BaseController.new(key, x, y, flags);
+        m.parents = [TransponderController, BaseController];
         return m;
     },
 
@@ -376,9 +269,13 @@ var TransponderWidget = {
         return val;
     },
 
-    draw: func (mcdu) {
-        var val = getprop(me.prop);
-        mcdu.print(me.x, me.y, val, me.flags);
+    select: func (boxed) {
+        if (boxed) {
+            return nil;
+        }
+        else {
+            return ['box', me.key];
+        }
     },
 
     dial: func (digit) {
@@ -415,34 +312,206 @@ var TransponderWidget = {
 };
 
 
-var FreqWidget = {
+var StaticView = {
+    new: func (x, y, txt, flags) {
+        var m = BaseView.new(nil, x, y, flags);
+        m.parents = [StaticView, BaseView];
+        m.w = size(txt);
+        m.txt = txt;
+        return m;
+    },
+
+    draw: func (mcdu) {
+        mcdu.print(me.x, me.y, me.txt, me.flags);
+    },
+};
+
+var ToggleView = {
+    new: func (key, x, y, flags, txt) {
+        var m = BaseView.new(key, x, y, flags);
+        m.parents = [ToggleView, BaseView];
+        m.w = size(txt);
+        m.txt = txt;
+        m.clear = "";
+        while (size(m.clear) < size(txt)) {
+            m.clear ~= " ";
+        }
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        mcdu.print(me.x, me.y, val ? me.txt : me.clear, me.flags);
+    },
+};
+
+var FormatView = {
+    new: func (key, x, y, flags, w, fmt = nil, mapping = nil) {
+        var m = BaseView.new(key, x, y, flags);
+        m.parents = [FormatView, BaseView];
+        m.mapping = mapping;
+        m.w = w;
+        if (fmt == nil) { fmt = "%" ~ w ~ "s"; }
+        m.fmt = fmt;
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        if (me.mapping != nil) {
+            if (typeof(me.mapping) == "func") {
+                val = me.mapping(val);
+            }
+            else {
+                val = me.mapping[val];
+            }
+        }
+        mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
+    },
+};
+
+var GeoView = {
+    new: func (key, x, y, latlon, flags) {
+        var m = BaseView.new(key, x, y, flags);
+        m.parents = [GeoView, BaseView];
+        if (latlon == "LAT") {
+            m.w = 8;
+            m.fmt = "%1s%02d°%04.1f";
+            m.dirs = ["S", "N"];
+        }
+        else {
+            m.w = 9;
+            m.fmt = "%1s%03d°%04.1f";
+            m.dirs = ["W", "E"];
+        }
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        var dir = (val < 0) ? (me.dirs[0]) : (me.dirs[1]);
+        var degs = math.abs(val);
+        var mins = math.fmod(degs * 60, 60);
+        mcdu.print(me.x, me.y, sprintf(me.fmt, dir, degs, mins), me.flags);
+    },
+};
+
+var StringView = {
+    new: func (key, x, y, flags, w) {
+        var m = BaseView.new(key, x, y, flags);
+        m.parents = [StringView, BaseView];
+        m.w = w;
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        if (size(val) > me.w) {
+            val = substr(val, 0, me.w);
+        }
+        if (size(val) < me.w) {
+            if (me.x >= cells_x / 2) {
+                # right-align
+                val = sprintf("%" ~ me.w ~ "s", val);
+            }
+            else {
+                # left-align
+                val = sprintf("%-" ~ me.w ~ "s", val);
+            }
+        }
+        mcdu.print(me.x, me.y, val, me.flags);
+    },
+};
+
+var CycleView = {
+    new: func (key, x, y, flags, values = nil, labels = nil) {
+        if (values == nil) { values = [0, 1]; }
+        if (labels == nil) { labels = ["OFF", "ON"]; }
+        var m = BaseView.new(key, x, y, flags);
+        m.parents = [CycleView, BaseView];
+        m.values = values;
+        m.labels = labels;
+        m.w = -1;
+        foreach (var val; values) {
+            var label = (typeof(labels) == "func") ? labels(val) : labels[val];
+            m.w += size(label) + 1;
+        }
+        return m;
+    },
+
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        var x = me.x;
+        foreach (var v; me.values) {
+            var label = (typeof(me.labels) == "func") ? me.labels(v) : me.labels[v];
+            if (label == nil) { continue; }
+            mcdu.print(x, me.y, label, (v == val) ? me.flags : 0);
+            x += size(label) + 1;
+        }
+    },
+};
+
+
+var FreqView = {
     new: func (key, x, y, flags, ty = nil) {
-        var m = BaseWidget.new(key, x, y, flags);
-        m.parents = [FreqWidget, BaseWidget];
+        var m = BaseView.new(key, x, y, flags);
+        m.parents = [FreqView, BaseView];
         if (ty == nil) {
             ty = substr(key, 0, 3);
         }
         m.mode = ty;
         if (ty == "COM") {
             m.w = 7;
-            m.amounts = [0.01, 0.1, 1.0, 10.0];
-            m.min = 118.0;
-            m.max = 137.0;
             m.fmt = "%7.3f";
         }
         else if (ty == "NAV") {
             m.w = 6;
-            m.amounts = [0.01, 0.1, 1.0, 10.0];
-            m.min = 108.0;
-            m.max = 118.0;
             m.fmt = "%6.2f";
         }
         else if (ty == "ADF") {
             m.w = 5;
+            m.fmt = "%5.1f";
+        }
+        else {
+            m.w = 7;
+            m.fmt = "%7.3f";
+        }
+        return m;
+    },
+    draw: func (mcdu) {
+        var val = getprop(me.prop);
+        mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
+    },
+
+};
+
+var FreqController = {
+    new: func (key, ty = nil) {
+        var m = BaseController.new(key);
+        m.parents = [FreqController, BaseView];
+        if (ty == nil) {
+            ty = substr(key, 0, 3);
+        }
+        m.mode = ty;
+        if (ty == "COM") {
+            m.amounts = [0.01, 0.1, 1.0, 10.0];
+            m.min = 118.0;
+            m.max = 137.0;
+        }
+        else if (ty == "NAV") {
+            m.amounts = [0.01, 0.1, 1.0, 10.0];
+            m.min = 108.0;
+            m.max = 118.0;
+        }
+        else if (ty == "ADF") {
             m.amounts = [0.1, 1, 10, 100];
             m.min = 190.0;
             m.max = 999.9;
-            m.fmt = "%5.1f";
+        }
+        else {
+            m.amounts = [0.01, 0.1, 1.0, 10.0];
+            m.min = 0.0;
+            m.max = 999.99;
         }
         return m;
     },
@@ -457,10 +526,15 @@ var FreqWidget = {
         return nil;
     },
 
-    draw: func (mcdu) {
-        var val = getprop(me.prop);
-        mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
+    select: func (boxed) {
+        if (boxed) {
+            return nil;
+        }
+        else {
+            return ['box', me.key];
+        }
     },
+
 
     dial: func (digit) {
         if (digit == 0) {
@@ -503,7 +577,8 @@ var Module = {
             ptitle = substr(ptitle, 0, maxw);
         }
 
-        m.mode = (Module.modes[mode])(ptitle, n);
+        var mode = (Module.modes[mode])(ptitle, n);
+        m.pages = mode.pages;
         m.title = m.mode.title;
         m.selectedKey = nil;
         return m;
@@ -558,31 +633,31 @@ var Module = {
                 title: "NAV INDEX",
                 pages: [
                     {
-                        widgets: [
-                            StaticWidget.new( 0,  2, left_triangle ~ "NAV IDENT  ", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0,  4, left_triangle ~ "WPT LIST   ", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0,  6, left_triangle ~ "FPL LIST   ", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0,  8, left_triangle ~ "POS SENSORS", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0, 10, left_triangle ~ "FIX INFO   ", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0, 12, left_triangle ~ "DEPARTURE  ", mcdu_large | mcdu_white),
-                            StaticWidget.new(12,  6, "    FLT SUM" ~ right_triangle, mcdu_large | mcdu_white),
-                            StaticWidget.new(12, 10, "       HOLD" ~ right_triangle, mcdu_large | mcdu_white),
-                            StaticWidget.new(12, 12, "    ARRIVAL" ~ right_triangle, mcdu_large | mcdu_white),
+                        views: [
+                            StaticView.new( 0,  2, left_triangle ~ "NAV IDENT  ", mcdu_large | mcdu_white),
+                            StaticView.new( 0,  4, left_triangle ~ "WPT LIST   ", mcdu_large | mcdu_white),
+                            StaticView.new( 0,  6, left_triangle ~ "FPL LIST   ", mcdu_large | mcdu_white),
+                            StaticView.new( 0,  8, left_triangle ~ "POS SENSORS", mcdu_large | mcdu_white),
+                            StaticView.new( 0, 10, left_triangle ~ "FIX INFO   ", mcdu_large | mcdu_white),
+                            StaticView.new( 0, 12, left_triangle ~ "DEPARTURE  ", mcdu_large | mcdu_white),
+                            StaticView.new(12,  6, "    FLT SUM" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticView.new(12, 10, "       HOLD" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticView.new(12, 12, "    ARRIVAL" ~ right_triangle, mcdu_large | mcdu_white),
                         ],
-                        handlers: {
+                        controllers: {
                             "L1": [ "goto", ["NAVIDENT"] ],
                         }
                     },
                     {
-                        widgets: [
-                            StaticWidget.new( 0,  2, left_triangle ~ "POS INIT   ", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0,  4, left_triangle ~ "DATA LOAD  ", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0,  6, left_triangle ~ "PATTERNS   ", mcdu_large | mcdu_white),
-                            StaticWidget.new(12,  2, " CONVERSION" ~ right_triangle, mcdu_large | mcdu_white),
-                            StaticWidget.new(12,  4, "MAINTENANCE" ~ right_triangle, mcdu_large | mcdu_white),
-                            StaticWidget.new(12,  6, "  CROSS PTS" ~ right_triangle, mcdu_large | mcdu_white),
+                        views: [
+                            StaticView.new( 0,  2, left_triangle ~ "POS INIT   ", mcdu_large | mcdu_white),
+                            StaticView.new( 0,  4, left_triangle ~ "DATA LOAD  ", mcdu_large | mcdu_white),
+                            StaticView.new( 0,  6, left_triangle ~ "PATTERNS   ", mcdu_large | mcdu_white),
+                            StaticView.new(12,  2, " CONVERSION" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticView.new(12,  4, "MAINTENANCE" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticView.new(12,  6, "  CROSS PTS" ~ right_triangle, mcdu_large | mcdu_white),
                         ],
-                        handlers: {
+                        controllers: {
                             "L1": [ "goto", ["POSINIT"] ]
                         }
                     }
@@ -594,25 +669,25 @@ var Module = {
                 title: "NAV IDENT",
                 pages: [
                     {
-                        widgets: [
-                            StaticWidget.new( 2,  1, "DATE", mcdu_white),
-                            FormatWidget.new("ZDAY", 1, 2, mcdu_large | mcdu_white, 2, "%02d"),
-                            FormatWidget.new("ZMON", 3, 2, mcdu_large | mcdu_white, 3, "%3s",
+                        views: [
+                            StaticView.new( 2,  1, "DATE", mcdu_white),
+                            FormatView.new("ZDAY", 1, 2, mcdu_large | mcdu_white, 2, "%02d"),
+                            FormatView.new("ZMON", 3, 2, mcdu_large | mcdu_white, 3, "%3s",
                                 [ "XXX", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" ]),
-                            FormatWidget.new("ZYEAR", 6, 2, mcdu_large | mcdu_white, 2, "%02d",
+                            FormatView.new("ZYEAR", 6, 2, mcdu_large | mcdu_white, 2, "%02d",
                                 func (y) { return math.mod(y, 100); }),
-                            StaticWidget.new( 2,  3, "UTC", mcdu_white),
-                            FormatWidget.new("ZHOUR", 1, 4, mcdu_large | mcdu_white, 2, "%02d"),
-                            FormatWidget.new("ZMIN", 3, 4, mcdu_large | mcdu_white, 2, "%02d"),
-                            StaticWidget.new( 6,  4, "Z", mcdu_white),
-                            StaticWidget.new( 2,  5, "SW", mcdu_white),
-                            FormatWidget.new("FGVER", 1,  6, mcdu_large | mcdu_white, 10, "%-10s"),
-                            StaticWidget.new(11,  5, "NDS V3.01 16M", mcdu_white),
-                            StaticWidget.new(12,  6, "WORLD3-301", mcdu_large | mcdu_white),
-                            StaticWidget.new( 0, 12, left_triangle ~ "MAINTENANCE", mcdu_large | mcdu_white),
-                            StaticWidget.new(12, 12, "   POS INIT" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticView.new( 2,  3, "UTC", mcdu_white),
+                            FormatView.new("ZHOUR", 1, 4, mcdu_large | mcdu_white, 2, "%02d"),
+                            FormatView.new("ZMIN", 3, 4, mcdu_large | mcdu_white, 2, "%02d"),
+                            StaticView.new( 6,  4, "Z", mcdu_white),
+                            StaticView.new( 2,  5, "SW", mcdu_white),
+                            FormatView.new("FGVER", 1,  6, mcdu_large | mcdu_white, 10, "%-10s"),
+                            StaticView.new(11,  5, "NDS V3.01 16M", mcdu_white),
+                            StaticView.new(12,  6, "WORLD3-301", mcdu_large | mcdu_white),
+                            StaticView.new( 0, 12, left_triangle ~ "MAINTENANCE", mcdu_large | mcdu_white),
+                            StaticView.new(12, 12, "   POS INIT" ~ right_triangle, mcdu_large | mcdu_white),
                         ],
-                        handlers: {
+                        controllers: {
                             "R6": [ "goto", ["POSINIT"] ]
                         }
                     },
@@ -624,21 +699,21 @@ var Module = {
                 title: "POSITION INIT",
                 pages: [
                     {
-                        widgets: [
-                            StaticWidget.new(        1,  1, "LAST POS",              mcdu_white),
-                            GeoWidget.new("RAWLAT",  0,  2, "LAT",      mcdu_large | mcdu_green),
-                            GeoWidget.new("RAWLON",  9,  2, "LON",      mcdu_large | mcdu_green),
-                            ToggleWidget.new("POSLOADED1", 17,  1, mcdu_white, "LOADED"),
-                            StaticWidget.new(       19,  2, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
+                        views: [
+                            StaticView.new(        1,  1, "LAST POS",              mcdu_white),
+                            GeoView.new("RAWLAT",  0,  2, "LAT",      mcdu_large | mcdu_green),
+                            GeoView.new("RAWLON",  9,  2, "LON",      mcdu_large | mcdu_green),
+                            ToggleView.new("POSLOADED1", 17,  1, mcdu_white, "LOADED"),
+                            StaticView.new(       19,  2, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
 
-                            StaticWidget.new(        1,  5, "GPS1 POS",              mcdu_white),
-                            GeoWidget.new("GPSLAT",  0,  6, "LAT",      mcdu_large | mcdu_green),
-                            GeoWidget.new("GPSLON",  9,  6, "LON",      mcdu_large | mcdu_green),
-                            ToggleWidget.new("POSLOADED3", 17,  5, mcdu_white, "LOADED"),
-                            StaticWidget.new(       19,  6, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
-                            StaticWidget.new(        0, 12, left_triangle ~ "POS SENSORS", mcdu_large | mcdu_white),
+                            StaticView.new(        1,  5, "GPS1 POS",              mcdu_white),
+                            GeoView.new("GPSLAT",  0,  6, "LAT",      mcdu_large | mcdu_green),
+                            GeoView.new("GPSLON",  9,  6, "LON",      mcdu_large | mcdu_green),
+                            ToggleView.new("POSLOADED3", 17,  5, mcdu_white, "LOADED"),
+                            StaticView.new(       19,  6, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
+                            StaticView.new(        0, 12, left_triangle ~ "POS SENSORS", mcdu_large | mcdu_white),
                         ],
-                        handlers: {
+                        controllers: {
                             "R1": [ "enable", ["POSLOADED1"] ]
                             "R3": [ "enable", ["POSLOADED3"] ]
                         }
@@ -646,13 +721,13 @@ var Module = {
                 ]
             };
             if (ptitle != nil) {
-                m.pages[0].handlers["R6"] = [ "ret", [] ];
+                m.pages[0].controllers["R6"] = [ "ret", [] ];
                 append(
-                    m.pages[0].widgets,
-                    StaticWidget.new(22 - size(ptitle), 12, ptitle, mcdu_large));
+                    m.pages[0].views,
+                    StaticView.new(22 - size(ptitle), 12, ptitle, mcdu_large));
                 append(
-                    m.pages[0].widgets,
-                    StaticWidget.new(23, 12, right_triangle, mcdu_large));
+                    m.pages[0].views,
+                    StaticView.new(23, 12, right_triangle, mcdu_large));
             }
             return m;
         },
@@ -661,55 +736,55 @@ var Module = {
                 title: "RADIO",
                 pages: [
                     {
-                        widgets: [
-                            FreqWidget.new("COM1A",  1, 2, mcdu_large | mcdu_green),
-                            FreqWidget.new("COM1S",  1, 4, mcdu_large | mcdu_yellow),
-                            FreqWidget.new("COM2A", 16, 2, mcdu_large | mcdu_green),
-                            FreqWidget.new("COM2S", 16, 4, mcdu_large | mcdu_yellow),
+                        views: [
+                            FreqView.new("COM1A",  1, 2, mcdu_large | mcdu_green),
+                            FreqView.new("COM1S",  1, 4, mcdu_large | mcdu_yellow),
+                            FreqView.new("COM2A", 16, 2, mcdu_large | mcdu_green),
+                            FreqView.new("COM2S", 16, 4, mcdu_large | mcdu_yellow),
 
-                            FreqWidget.new("NAV1A",  1, 6, mcdu_large | mcdu_green),
-                            FreqWidget.new("NAV1S",  1, 8, mcdu_large | mcdu_yellow),
-                            FreqWidget.new("NAV2A", 17, 6, mcdu_large | mcdu_green),
-                            FreqWidget.new("NAV2S", 17, 8, mcdu_large | mcdu_yellow),
+                            FreqView.new("NAV1A",  1, 6, mcdu_large | mcdu_green),
+                            FreqView.new("NAV1S",  1, 8, mcdu_large | mcdu_yellow),
+                            FreqView.new("NAV2A", 17, 6, mcdu_large | mcdu_green),
+                            FreqView.new("NAV2S", 17, 8, mcdu_large | mcdu_yellow),
 
-                            TransponderWidget.new("XPDRA", 19, 10, mcdu_large | mcdu_green),
+                            TransponderView.new("XPDRA", 19, 10, mcdu_large | mcdu_green),
 
-                            ToggleWidget.new("NAV1AUTO",  8, 5, mcdu_large | mcdu_blue, "FMS"),
-                            ToggleWidget.new("NAV1AUTO",  8, 6, mcdu_large | mcdu_blue, "AUTO"),
-                            ToggleWidget.new("NAV2AUTO", 12, 5, mcdu_large | mcdu_blue, "FMS"),
-                            ToggleWidget.new("NAV2AUTO", 12, 6, mcdu_large | mcdu_blue, "AUTO"),
+                            ToggleView.new("NAV1AUTO",  8, 5, mcdu_large | mcdu_blue, "FMS"),
+                            ToggleView.new("NAV1AUTO",  8, 6, mcdu_large | mcdu_blue, "AUTO"),
+                            ToggleView.new("NAV2AUTO", 12, 5, mcdu_large | mcdu_blue, "FMS"),
+                            ToggleView.new("NAV2AUTO", 12, 6, mcdu_large | mcdu_blue, "AUTO"),
 
-                            CycleWidget.new("XPDRON", 1, 12, mcdu_large | mcdu_green,
+                            CycleView.new("XPDRON", 1, 12, mcdu_large | mcdu_green,
                                 [0, 1],
-                                func (n) { return (n ? xpdrModeLabels[getprop(widgetProps["XPDRMD"])] : "STBY"); }),
+                                func (n) { return (n ? xpdrModeLabels[getprop(keyProps["XPDRMD"])] : "STBY"); }),
 
-                            StaticWidget.new(  1,  1, "COM1",                   mcdu_white ),
-                            StaticWidget.new(  0,  2, up_down_arrow,            mcdu_large | mcdu_white ),
-                            StaticWidget.new(  0,  4, left_triangle,            mcdu_large | mcdu_white ),
+                            StaticView.new(  1,  1, "COM1",                   mcdu_white ),
+                            StaticView.new(  0,  2, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticView.new(  0,  4, left_triangle,            mcdu_large | mcdu_white ),
 
-                            StaticWidget.new( 19,  1, "COM2",                   mcdu_white ),
-                            StaticWidget.new( 23,  2, up_down_arrow,            mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23,  4, right_triangle,           mcdu_large | mcdu_white ),
+                            StaticView.new( 19,  1, "COM2",                   mcdu_white ),
+                            StaticView.new( 23,  2, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticView.new( 23,  4, right_triangle,           mcdu_large | mcdu_white ),
 
-                            StaticWidget.new(  1,  5, "NAV1",                   mcdu_white ),
-                            StaticWidget.new(  0,  6, up_down_arrow,            mcdu_large | mcdu_white ),
-                            StaticWidget.new(  0,  8, left_triangle,            mcdu_large | mcdu_white ),
+                            StaticView.new(  1,  5, "NAV1",                   mcdu_white ),
+                            StaticView.new(  0,  6, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticView.new(  0,  8, left_triangle,            mcdu_large | mcdu_white ),
 
-                            StaticWidget.new( 19,  5, "NAV2",                   mcdu_white ),
-                            StaticWidget.new( 23,  6, up_down_arrow,            mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23,  8, right_triangle,           mcdu_large | mcdu_white ),
+                            StaticView.new( 19,  5, "NAV2",                   mcdu_white ),
+                            StaticView.new( 23,  6, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticView.new( 23,  8, right_triangle,           mcdu_large | mcdu_white ),
 
-                            StaticWidget.new( 19,  9, "XPDR",                   mcdu_white ),
-                            StaticWidget.new( 23, 10, right_triangle,           mcdu_large | mcdu_white ),
-                            StaticWidget.new( 18, 11, "IDENT",                  mcdu_white ),
-                            StaticWidget.new( 18, 12, "IDENT",                  mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23, 12, black_square,             mcdu_large | mcdu_white ),
+                            StaticView.new( 19,  9, "XPDR",                   mcdu_white ),
+                            StaticView.new( 23, 10, right_triangle,           mcdu_large | mcdu_white ),
+                            StaticView.new( 18, 11, "IDENT",                  mcdu_white ),
+                            StaticView.new( 18, 12, "IDENT",                  mcdu_large | mcdu_white ),
+                            StaticView.new( 23, 12, black_square,             mcdu_large | mcdu_white ),
 
-                            StaticWidget.new(  1, 10, "TCAS/XPDR",              mcdu_large | mcdu_white ),
-                            StaticWidget.new(  0, 12, left_right_arrow,         mcdu_large | mcdu_white ),
+                            StaticView.new(  1, 10, "TCAS/XPDR",              mcdu_large | mcdu_white ),
+                            StaticView.new(  0, 12, left_right_arrow,         mcdu_large | mcdu_white ),
                         ],
                         dividers: [0, 1, 3, 4],
-                        handlers: {
+                        controllers: {
                             "L1": [ "freqswap", ["COM1"] ],
                             "L2": [ "propsel", ["COM1S", "COM1"] ],
                             "L3": [ "freqswap", ["NAV1"] ],
@@ -725,18 +800,18 @@ var Module = {
                         }
                     },
                     {
-                        widgets: [
-                            FreqWidget.new("ADF1A",  1, 2, mcdu_large | mcdu_green),
-                            FreqWidget.new("ADF1S",  1, 4, mcdu_large | mcdu_yellow),
-                            FreqWidget.new("ADF2A", 18, 2, mcdu_large | mcdu_green),
-                            FreqWidget.new("ADF2S", 18, 4, mcdu_large | mcdu_yellow),
-                            StaticWidget.new( 1, 1, "ADF1",         mcdu_white ),
-                            StaticWidget.new( 0, 4, left_triangle,  mcdu_large | mcdu_white ),
-                            StaticWidget.new(19, 1, "ADF2",         mcdu_white ),
-                            StaticWidget.new(23, 4, right_triangle, mcdu_large | mcdu_white ),
+                        views: [
+                            FreqView.new("ADF1A",  1, 2, mcdu_large | mcdu_green),
+                            FreqView.new("ADF1S",  1, 4, mcdu_large | mcdu_yellow),
+                            FreqView.new("ADF2A", 18, 2, mcdu_large | mcdu_green),
+                            FreqView.new("ADF2S", 18, 4, mcdu_large | mcdu_yellow),
+                            StaticView.new( 1, 1, "ADF1",         mcdu_white ),
+                            StaticView.new( 0, 4, left_triangle,  mcdu_large | mcdu_white ),
+                            StaticView.new(19, 1, "ADF2",         mcdu_white ),
+                            StaticView.new(23, 4, right_triangle, mcdu_large | mcdu_white ),
                         ],
                         dividers: [0, 1, 2, 3, 4],
-                        handlers: {
+                        controllers: {
                             "L1": [ "freqswap", ["ADF1"] ],
                             "R1": [ "freqswap", ["ADF2"] ],
                             "L2": [ "propsel", ["ADF1S"] ],
@@ -751,23 +826,23 @@ var Module = {
                 title: "NAV " ~ n,
                 pages: [
                     {
-                        widgets: [
-                            FreqWidget.new("NAV" ~ n ~ "A",      1,  2, mcdu_large |  mcdu_green),
-                            FreqWidget.new("NAV" ~ n ~ "S",      1,  4, mcdu_large |  mcdu_yellow),
-                            CycleWidget.new("DME" ~ n ~ "H",    17, 4, mcdu_large | mcdu_green),
-                            CycleWidget.new("NAV" ~ n ~ "AUTO", 17, 10, mcdu_large | mcdu_green),
-                            StaticWidget.new(  1,  1, "ACTIVE",                 mcdu_white ),
-                            StaticWidget.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1,  3, "PRESET",                 mcdu_white ),
-                            StaticWidget.new(  0,  4, left_triangle, mcdu_large | mcdu_white ),
-                            StaticWidget.new( 15,  3, "DME HOLD",               mcdu_white ),
-                            StaticWidget.new( 15,  9, "FMS AUTO",               mcdu_white ),
-                            StaticWidget.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
-                            StaticWidget.new( 14, 12, ptitle, mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
+                        views: [
+                            FreqView.new("NAV" ~ n ~ "A",      1,  2, mcdu_large |  mcdu_green),
+                            FreqView.new("NAV" ~ n ~ "S",      1,  4, mcdu_large |  mcdu_yellow),
+                            CycleView.new("DME" ~ n ~ "H",    17, 4, mcdu_large | mcdu_green),
+                            CycleView.new("NAV" ~ n ~ "AUTO", 17, 10, mcdu_large | mcdu_green),
+                            StaticView.new(  1,  1, "ACTIVE",                 mcdu_white ),
+                            StaticView.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
+                            StaticView.new(  1,  3, "PRESET",                 mcdu_white ),
+                            StaticView.new(  0,  4, left_triangle, mcdu_large | mcdu_white ),
+                            StaticView.new( 15,  3, "DME HOLD",               mcdu_white ),
+                            StaticView.new( 15,  9, "FMS AUTO",               mcdu_white ),
+                            StaticView.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
+                            StaticView.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
+                            StaticView.new( 14, 12, ptitle, mcdu_large | mcdu_white ),
+                            StaticView.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
                         ],
-                        handlers: {
+                        controllers: {
                             "L1": [ "freqswap", ["NAV" ~ n] ],
                             "L2": [ "propsel", ["NAV" ~ n ~ "S"] ],
                             "R2": [ "toggle", ["DME" ~ n ~ "H"] ],
@@ -783,23 +858,23 @@ var Module = {
                 title: "COM " ~ n,
                 pages: [
                     {
-                        widgets: [
-                            FreqWidget.new("COM" ~ n ~ "A",  1,  2, mcdu_large |  mcdu_green),
-                            FreqWidget.new("COM" ~ n ~ "S",  1,  4, mcdu_large | mcdu_yellow),
-                            StaticWidget.new(  1,  1, "ACTIVE",                 mcdu_white ),
-                            StaticWidget.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1,  3, "PRESET",                 mcdu_white ),
-                            StaticWidget.new(  0,  4, left_triangle, mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1,  5, "MEM TUNE",               mcdu_white ),
-                            StaticWidget.new( 16,  1, "SQUELCH",                mcdu_white ),
-                            StaticWidget.new( 19,  3, "MODE",                   mcdu_white ),
-                            StaticWidget.new( 19,  5, "FREQ",                   mcdu_white ),
-                            StaticWidget.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
-                            StaticWidget.new( 14, 12, ptitle, mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
+                        views: [
+                            FreqView.new("COM" ~ n ~ "A",  1,  2, mcdu_large |  mcdu_green),
+                            FreqView.new("COM" ~ n ~ "S",  1,  4, mcdu_large | mcdu_yellow),
+                            StaticView.new(  1,  1, "ACTIVE",                 mcdu_white ),
+                            StaticView.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
+                            StaticView.new(  1,  3, "PRESET",                 mcdu_white ),
+                            StaticView.new(  0,  4, left_triangle, mcdu_large | mcdu_white ),
+                            StaticView.new(  1,  5, "MEM TUNE",               mcdu_white ),
+                            StaticView.new( 16,  1, "SQUELCH",                mcdu_white ),
+                            StaticView.new( 19,  3, "MODE",                   mcdu_white ),
+                            StaticView.new( 19,  5, "FREQ",                   mcdu_white ),
+                            StaticView.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
+                            StaticView.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
+                            StaticView.new( 14, 12, ptitle, mcdu_large | mcdu_white ),
+                            StaticView.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
                         ],
-                        handlers: {
+                        controllers: {
                             "L1": [ "freqswap", ["COM" ~ n] ],
                             "L2": [ "propsel", ["COM" ~ n ~ "S"] ],
                             "R6": [ "ret", [] ],
@@ -813,28 +888,28 @@ var Module = {
                 title: "TCAS/XPDR",
                 pages: [
                     {
-                        widgets: [
-                            TransponderWidget.new("XPDRA",  1,  2, mcdu_large |  mcdu_green),
-                            TransponderWidget.new("XPDRS",  1,  4, mcdu_large | mcdu_yellow),
-                            FormatWidget.new("PALT", 18, 2, mcdu_large | mcdu_green, 5, "%5.0f"),
-                            StringWidget.new("FLTID", 17, 4, mcdu_large | mcdu_green, 6),
-                            StaticWidget.new(  1,  1, "ACTIVE",                 mcdu_white ),
-                            StaticWidget.new(  0,  2, up_down_arrow,            mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1,  3, "PRESET",                 mcdu_white ),
-                            StaticWidget.new(  0,  4, left_triangle,            mcdu_large | mcdu_white ),
-                            StaticWidget.new( 11,  1, "PRESSURE ALT",           mcdu_white ),
-                            StaticWidget.new( 17,  3, "FLT ID",                 mcdu_white ),
-                            StaticWidget.new( 23,  4, right_triangle,           mcdu_large | mcdu_white ),
-                            StaticWidget.new( 19,  5, "FREQ",                   mcdu_white ),
-                            StaticWidget.new(  1,  9, "XPDR SEL",               mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1, 10, "XPDR 1",                 mcdu_large | mcdu_green ),
-                            StaticWidget.new(  8, 10, "XPDR 2",                 mcdu_white ),
-                            StaticWidget.new( 18, 10, "IDENT",                  mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23, 10, black_square,             mcdu_large | mcdu_white ),
-                            StaticWidget.new( 14, 12, ptitle,              mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
+                        views: [
+                            TransponderView.new("XPDRA",  1,  2, mcdu_large |  mcdu_green),
+                            TransponderView.new("XPDRS",  1,  4, mcdu_large | mcdu_yellow),
+                            FormatView.new("PALT", 18, 2, mcdu_large | mcdu_green, 5, "%5.0f"),
+                            StringView.new("FLTID", 17, 4, mcdu_large | mcdu_green, 6),
+                            StaticView.new(  1,  1, "ACTIVE",                 mcdu_white ),
+                            StaticView.new(  0,  2, up_down_arrow,            mcdu_large | mcdu_white ),
+                            StaticView.new(  1,  3, "PRESET",                 mcdu_white ),
+                            StaticView.new(  0,  4, left_triangle,            mcdu_large | mcdu_white ),
+                            StaticView.new( 11,  1, "PRESSURE ALT",           mcdu_white ),
+                            StaticView.new( 17,  3, "FLT ID",                 mcdu_white ),
+                            StaticView.new( 23,  4, right_triangle,           mcdu_large | mcdu_white ),
+                            StaticView.new( 19,  5, "FREQ",                   mcdu_white ),
+                            StaticView.new(  1,  9, "XPDR SEL",               mcdu_large | mcdu_white ),
+                            StaticView.new(  1, 10, "XPDR 1",                 mcdu_large | mcdu_green ),
+                            StaticView.new(  8, 10, "XPDR 2",                 mcdu_white ),
+                            StaticView.new( 18, 10, "IDENT",                  mcdu_large | mcdu_white ),
+                            StaticView.new( 23, 10, black_square,             mcdu_large | mcdu_white ),
+                            StaticView.new( 14, 12, ptitle,              mcdu_large | mcdu_white ),
+                            StaticView.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
                         ],
-                        handlers: {
+                        controllers: {
                             "L1": [ "freqswap", ["XPDR"] ],
                             "L2": [ "propsel", ["XPDRS"] ],
                             "R2": [ "propsel", ["FLTID"] ],
@@ -843,16 +918,16 @@ var Module = {
                         }
                     },
                     {
-                        widgets: [
-                            CycleWidget.new("XPDRMD", 1, 2, mcdu_large | mcdu_green, [4,3,2,1], xpdrModeLabels),
-                            StaticWidget.new(  1,  1, "TCAS/XPDR MODE",         mcdu_white ),
-                            StaticWidget.new(  0,  2, black_square,             mcdu_large | mcdu_white ),
-                            StaticWidget.new(  1,  4, "ALT RANGE",              mcdu_white ),
-                            StaticWidget.new( 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ),
-                            StaticWidget.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
+                        views: [
+                            CycleView.new("XPDRMD", 1, 2, mcdu_large | mcdu_green, [4,3,2,1], xpdrModeLabels),
+                            StaticView.new(  1,  1, "TCAS/XPDR MODE",         mcdu_white ),
+                            StaticView.new(  0,  2, black_square,             mcdu_large | mcdu_white ),
+                            StaticView.new(  1,  4, "ALT RANGE",              mcdu_white ),
+                            StaticView.new( 14, 12, "RADIO 1/2",              mcdu_large | mcdu_white ),
+                            StaticView.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
                         ],
                         dividers: [],
-                        handlers: {
+                        controllers: {
                             "L1": [ "propcycle", ["XPDRMD"] ],
                             "R6": [ "ret", [] ],
                         }
@@ -863,7 +938,7 @@ var Module = {
     },
 
     getNumPages: func () {
-        return size(me.mode.pages);
+        return size(me.pages);
     },
 
     onPageChanged: func () {
@@ -871,18 +946,18 @@ var Module = {
     },
 
     drawFreq: func (key) {
-        foreach (var widget; me.mode.pages[me.page].widgets) {
+        foreach (var widget; me.pages[me.page].views) {
             if (widget.key == key) {
                 widget.draw(me.mcdu);
             }
         }
     },
 
-    findWidget: func (key) {
+    findView: func (key) {
         if (key == nil) {
             return nil;
         }
-        foreach (var widget; me.mode.pages[me.page].widgets) {
+        foreach (var widget; me.pages[me.page].views) {
             if (widget.key == key) {
                 return widget;
             }
@@ -891,7 +966,7 @@ var Module = {
     },
 
     drawFocusBox: func () {
-        var widget = me.findWidget(me.selectedKey);
+        var widget = me.findView(me.selectedKey);
         if (widget == nil) {
             me.mcdu.clearFocusBox();
         }
@@ -901,8 +976,8 @@ var Module = {
     },
 
     redraw: func () {
-        var currentPage = me.mode.pages[me.page];
-        foreach (var widget; me.mode.pages[me.page].widgets) {
+        var currentPage = me.pages[me.page];
+        foreach (var widget; me.pages[me.page].views) {
             widget.draw(me.mcdu);
         }
         if (contains(currentPage, "dividers")) {
@@ -918,12 +993,12 @@ var Module = {
             if (k == nil) {
                 return;
             }
-            append(me.listeners, setlistener(widgetProps[k], func (changed) {
+            append(me.listeners, setlistener(keyProps[k], func (changed) {
                 me.drawFreq(k);
             }));
         };
-        foreach (var page; me.mode.pages) {
-            foreach (var widget; page.widgets) {
+        foreach (var page; me.pages) {
+            foreach (var widget; page.views) {
                 activateFreq(widget.key);
             }
         }
@@ -937,8 +1012,8 @@ var Module = {
     },
 
     freqswap: func (keyBase) {
-        var prop1 = widgetProps[keyBase ~ "A"];
-        var prop2 = widgetProps[keyBase ~ "S"];
+        var prop1 = keyProps[keyBase ~ "A"];
+        var prop2 = keyProps[keyBase ~ "S"];
         swapProps(prop1, prop2);
     },
 
@@ -958,7 +1033,7 @@ var Module = {
             }
         }
         else {
-            var widget = me.findWidget(key);
+            var widget = me.findView(key);
             if (widget == nil) {
                 # TODO: issue error message in scratchpad
             }
@@ -970,25 +1045,25 @@ var Module = {
     },
 
     enable: func (key, val = 1) {
-        var prop = widgetProps[key];
+        var prop = keyProps[key];
         setprop(prop, val);
         me.drawFreq(key);
     },
 
     propcycle: func (key) {
-        var widget = me.findWidget(key);
+        var widget = me.findView(key);
         widget.cycle();
         me.drawFreq(key);
     },
 
     propdial: func (digit) {
-        var widget = me.findWidget(me.selectedKey);
+        var widget = me.findView(me.selectedKey);
         widget.dial(digit);
         me.drawFreq(me.selectedKey);
     },
 
     toggle: func (key) {
-        var prop = widgetProps[key];
+        var prop = keyProps[key];
         fgcommand("property-toggle", { "property": prop });
         me.drawFreq(key);
     },
@@ -1006,7 +1081,7 @@ var Module = {
     },
 
     handleCommand: func (cmd) {
-        var c = me.mode.pages[me.page].handlers[cmd];
+        var c = me.pages[me.page].handlers[cmd];
         if (c == nil) { c = me.defHandlers[cmd]; }
         var funcs = {
             "propdial": me.propdial,
