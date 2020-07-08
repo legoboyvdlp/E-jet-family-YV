@@ -552,6 +552,9 @@
                 -->
                 <mode>4</mode>
             </tcas-xpdr>
+            <position-loaded type="bool">false</position-loaded>
+            <position-loaded type="bool">false</position-loaded>
+            <position-loaded type="bool">false</position-loaded>
         </radio>
     </fms>
 

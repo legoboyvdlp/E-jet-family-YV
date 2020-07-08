@@ -1,4 +1,12 @@
 # Embraer E-Jet family MCDU.
+#
+# E190 AOM:
+# - p1582: T/O DATASET menu
+# - p1761: MCDU CONTROLS
+# - p1804: RADIO COMMUNICATION SYSTEM
+# - p1822: ACARS etc.
+# - p1859: IRS
+# - p1901: Preflight flow
 
 var swapProps = func (prop1, prop2) {
     fgcommand("property-swap", {
@@ -62,6 +70,7 @@ var xpdrModeLabels = [
 ];
 
 var widgetProps = {
+    # Radios
     "NAV1A": "/instrumentation/nav[0]/frequencies/selected-mhz",
     "NAV1S": "/instrumentation/nav[0]/frequencies/standby-mhz",
     "NAV1ID": "/instrumentation/nav[0]/nav-id",
@@ -84,12 +93,30 @@ var widgetProps = {
     "XPDRS": "/instrumentation/transponder/standby-id",
     "XPDRON": "/fms/radio/tcas-xpdr/enabled",
     "XPDRMD": "/fms/radio/tcas-xpdr/mode",
-    "FLTID": "/sim/multiplay/callsign",
     "PALT": "/instrumentation/altimeter/pressure-alt-ft",
+
+    # Misc
+    "ACTYPE": "/sim/aircraft",
+    "ENGINE": "/sim/engine",
+    "FGVER": "/sim/version/flightgear",
+
+    # Date/Time
+    "ZHOUR": "/sim/time/utc/hour",
+    "ZMIN": "/sim/time/utc/minute",
+    "ZSEC": "/sim/time/utc/second",
+    "ZDAY": "/sim/time/utc/day",
+    "ZMON": "/sim/time/utc/month",
+    "ZYEAR": "/sim/time/utc/year",
+
+    # Position
+    "FLTID": "/sim/multiplay/callsign",
     "GPSLAT": "/instrumentation/gps/indicated-latitude-deg",
     "GPSLON": "/instrumentation/gps/indicated-longitude-deg",
     "RAWLAT": "/position/latitude-deg",
     "RAWLON": "/position/longitude-deg",
+    "POSLOADED1": "/fms/position-loaded[0]",
+    "POSLOADED2": "/fms/position-loaded[1]",
+    "POSLOADED3": "/fms/position-loaded[2]",
 };
 
 var BaseWidget = {
@@ -183,6 +210,10 @@ var ToggleWidget = {
         return m;
     },
 
+    parse: func (val) {
+        return !!val;
+    },
+
     draw: func (mcdu) {
         var val = getprop(me.prop);
         mcdu.print(me.x, me.y, val ? me.txt : me.clear, me.flags);
@@ -190,9 +221,10 @@ var ToggleWidget = {
 };
 
 var FormatWidget = {
-    new: func (key, x, y, flags, w, fmt = nil) {
+    new: func (key, x, y, flags, w, fmt = nil, mapping = nil) {
         var m = BaseWidget.new(key, x, y, flags);
         m.parents = [FormatWidget, BaseWidget];
+        m.mapping = mapping;
         m.w = w;
         if (fmt == nil) { fmt = "%" ~ w ~ "s"; }
         m.fmt = fmt;
@@ -201,6 +233,14 @@ var FormatWidget = {
 
     draw: func (mcdu) {
         var val = getprop(me.prop);
+        if (me.mapping != nil) {
+            if (typeof(me.mapping) == "func") {
+                val = me.mapping(val);
+            }
+            else {
+                val = me.mapping[val];
+            }
+        }
         mcdu.print(me.x, me.y, sprintf(me.fmt, val), me.flags);
     },
 };
@@ -530,6 +570,7 @@ var Module = {
                             StaticWidget.new(12, 12, "    ARRIVAL" ~ right_triangle, mcdu_large | mcdu_white),
                         ],
                         handlers: {
+                            "L1": [ "goto", ["NAVIDENT"] ],
                         }
                     },
                     {
@@ -548,6 +589,36 @@ var Module = {
                 ]
             };
         },
+        "NAVIDENT": func (ptitle, n) {
+            return {
+                title: "NAV IDENT",
+                pages: [
+                    {
+                        widgets: [
+                            StaticWidget.new( 2,  1, "DATE", mcdu_white),
+                            FormatWidget.new("ZDAY", 1, 2, mcdu_large | mcdu_white, 2, "%02d"),
+                            FormatWidget.new("ZMON", 3, 2, mcdu_large | mcdu_white, 3, "%3s",
+                                [ "XXX", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" ]),
+                            FormatWidget.new("ZYEAR", 6, 2, mcdu_large | mcdu_white, 2, "%02d",
+                                func (y) { return math.mod(y, 100); }),
+                            StaticWidget.new( 2,  3, "UTC", mcdu_white),
+                            FormatWidget.new("ZHOUR", 1, 4, mcdu_large | mcdu_white, 2, "%02d"),
+                            FormatWidget.new("ZMIN", 3, 4, mcdu_large | mcdu_white, 2, "%02d"),
+                            StaticWidget.new( 6,  4, "Z", mcdu_white),
+                            StaticWidget.new( 2,  5, "SW", mcdu_white),
+                            FormatWidget.new("FGVER", 1,  6, mcdu_large | mcdu_white, 10, "%-10s"),
+                            StaticWidget.new(11,  5, "NDS V3.01 16M", mcdu_white),
+                            StaticWidget.new(12,  6, "WORLD3-301", mcdu_large | mcdu_white),
+                            StaticWidget.new( 0, 12, left_triangle ~ "MAINTENANCE", mcdu_large | mcdu_white),
+                            StaticWidget.new(12, 12, "   POS INIT" ~ right_triangle, mcdu_large | mcdu_white),
+                        ],
+                        handlers: {
+                            "R6": [ "goto", ["POSINIT"] ]
+                        }
+                    },
+                ]
+            };
+        },
         "POSINIT": func (ptitle, n) {
             var m = {
                 title: "POSITION INIT",
@@ -557,15 +628,19 @@ var Module = {
                             StaticWidget.new(        1,  1, "LAST POS",              mcdu_white),
                             GeoWidget.new("RAWLAT",  0,  2, "LAT",      mcdu_large | mcdu_green),
                             GeoWidget.new("RAWLON",  9,  2, "LON",      mcdu_large | mcdu_green),
+                            ToggleWidget.new("POSLOADED1", 17,  1, mcdu_white, "LOADED"),
                             StaticWidget.new(       19,  2, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
-                            StaticWidget.new(        1,  3, "---- REF  WPT",         mcdu_white),
+
                             StaticWidget.new(        1,  5, "GPS1 POS",              mcdu_white),
                             GeoWidget.new("GPSLAT",  0,  6, "LAT",      mcdu_large | mcdu_green),
                             GeoWidget.new("GPSLON",  9,  6, "LON",      mcdu_large | mcdu_green),
+                            ToggleWidget.new("POSLOADED3", 17,  5, mcdu_white, "LOADED"),
                             StaticWidget.new(       19,  6, "LOAD" ~ right_triangle, mcdu_large | mcdu_white),
                             StaticWidget.new(        0, 12, left_triangle ~ "POS SENSORS", mcdu_large | mcdu_white),
                         ],
                         handlers: {
+                            "R1": [ "enable", ["POSLOADED1"] ]
+                            "R3": [ "enable", ["POSLOADED3"] ]
                         }
                     }
                 ]
@@ -894,6 +969,12 @@ var Module = {
         }
     },
 
+    enable: func (key, val = 1) {
+        var prop = widgetProps[key];
+        setprop(prop, val);
+        me.drawFreq(key);
+    },
+
     propcycle: func (key) {
         var widget = me.findWidget(key);
         widget.cycle();
@@ -933,6 +1014,7 @@ var Module = {
             "propsel": me.propsel,
             "propcycle": me.propcycle,
             "toggle": me.toggle,
+            "enable": me.enable,
             "ident": me.ident,
             "goto": me.goto,
             "ret": me.ret,
