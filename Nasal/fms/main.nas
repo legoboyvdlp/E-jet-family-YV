@@ -3,7 +3,7 @@ var fast_update = func () {
 };
 
 var slow_update = func () {
-    update_vnav();
+    vnav.update();
     update_radios();
 };
 
