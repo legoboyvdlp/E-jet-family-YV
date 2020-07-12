@@ -49,13 +49,13 @@
         </model>
 
         <flaps>
-            <setting>0</setting>
-            <setting>0.1</setting>
-            <setting>0.2</setting>
-            <setting>0.3</setting>
-            <setting>0.4</setting>
-            <setting>0.5</setting>
-            <setting>0.6</setting>
+            <setting>0</setting> <!-- clean -->
+            <setting>0.125</setting> <!-- 1 -->
+            <setting>0.250</setting> <!-- 2 -->
+            <setting>0.375</setting> <!-- 3 -->
+            <setting>0.500</setting> <!-- 4 -->
+            <setting>0.625</setting> <!-- 5 -->
+            <setting>0.750</setting> <!-- full / 6 -->
         </flaps>
 
         <startup>
@@ -556,6 +556,19 @@
             <position-loaded type="bool">false</position-loaded>
             <position-loaded type="bool">false</position-loaded>
         </radio>
+
+        <landing-conditions>
+            <approach-flaps type="double">0.500</approach-flaps>
+            <landing-flaps type="double">0.750</landing-flaps>
+            <ice-accretion type="bool">false</ice-accretion>
+            <!--
+                0 = non-precision
+                1 = CAT I
+                2 = CAT II
+                3 = CAT III
+            -->
+            <approach-cat>1</approach-cat>
+        </landing-conditions>
     </fms>
 
     <controls>

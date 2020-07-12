@@ -216,6 +216,12 @@ var keyProps = {
     "VF4": "/controls/flight/vf4",
     "VF5": "/controls/flight/vf5",
     "VF6": "/controls/flight/vf6",
+
+    # Landing parameters
+    "APPR-FLAPS": "/fms/landing-conditions/approach-flaps",
+    "LANDING-FLAPS": "/fms/landing-conditions/landing-flaps",
+    "LANDING-ICE": "/fms/landing-conditions/ice-accretion",
+    "APPROACH-CAT": "/fms/landing-conditions/approach-cat",
 };
 
 var modelFactory = func (key) {
@@ -517,16 +523,17 @@ var CycleView = {
             if (size(me.values) == 2) {
                 mcdu.print(cells_x / 2 - 1, me.y, "OR", mcdu_large | mcdu_white);
                 if (val == me.values[0]) {
-                    mcdu.print(1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[0]), me.flags);
-                    mcdu.print(cells_x / 2 + 1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[1]) ~ right_triangle, mcdu_large | mcdu_white);
+                    mcdu.print(1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[me.values[0]]), me.flags);
+                    mcdu.print(cells_x / 2 + 2, me.y, sprintf("%-" ~ (cells_x / 2 - 3) ~ "s", me.labels[me.values[1]]), mcdu_white);
                 }
                 else {
-                    mcdu.print(0, me.y, left_triangle ~ sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[0]), mcdu_large | mcdu_white);
-                    mcdu.print(cells_x / 2 + 1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[1]), me.flags);
+                    mcdu.print(1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[me.values[1]]), me.flags);
+                    mcdu.print(cells_x / 2 + 2, me.y, sprintf("%-" ~ (cells_x / 2 - 3) ~ "s", me.labels[me.values[0]]), mcdu_white);
                 }
+                mcdu.print(cells_x - 1, me.y, right_triangle, mcdu_large | mcdu_white);
             }
             else {
-                mcdu.print(1, me.y, sprintf("%-" ~ (cells_x - 4) ~ "s", me.labels[val], me.flags));
+                mcdu.print(1, me.y, sprintf("%-" ~ (cells_x - 4) ~ "s", me.labels[val]), me.flags);
                 mcdu.print(cells_x - 3, me.y, "OR" ~ right_triangle, mcdu_large | mcdu_white);
             }
         }
@@ -1170,12 +1177,26 @@ var LandingPerfModule = {
                 StaticView.new(cells_x - 8, 1, "LND WGT", mcdu_white),
                 FormatView.new(15, 2, mcdu_white, "WGT-LND", 8, "%6.0fLB"),
                 StaticView.new(1, 3, "APPROACH FLAP", mcdu_white),
+                CycleView.new(0, 4, mcdu_large | mcdu_green, "APPR-FLAPS",
+                    [0.250, 0.500], { 0.250: "FLAP-2", 0.500: "FLAP-4" }, 1),
                 StaticView.new(1, 5, "LANDING FLAP", mcdu_white),
+                CycleView.new(0, 6, mcdu_large | mcdu_green, "LANDING-FLAPS",
+                    [0.625, 0.750], { 0.625: "FLAP-5", 0.750: "FLAP-FULL" }, 1),
                 StaticView.new(1, 7, "ICE", mcdu_white),
+                CycleView.new(0, 8, mcdu_large | mcdu_green, "LANDING-ICE",
+                    [0, 1], ["NO", "YES"], 1),
                 StaticView.new(1, 9, "APPROACH TYPE", mcdu_white),
+                CycleView.new(0, 10, mcdu_large | mcdu_green, "APPROACH-CAT",
+                    [0, 1, 2], ["NON-PRECISION", "CAT-I", "CAT-II", "CAT-III"], 1),
                 StaticView.new(0, 12, left_triangle ~ "PERF DATA", mcdu_white | mcdu_large),
                 StaticView.new(14, 12, "T.O. DATA" ~ right_triangle, mcdu_white | mcdu_large),
             ];
+            me.controllers = {
+                "R2": CycleController.new("APPR-FLAPS", [0.250, 0.500]),
+                "R3": CycleController.new("LANDING-FLAPS", [0.625, 0.750]),
+                "R4": CycleController.new("LANDING-ICE"),
+                "R5": CycleController.new("APPROACH-CAT", [0,1,2]),
+            };
         }
         else if (n == 1) {
             me.views = [
