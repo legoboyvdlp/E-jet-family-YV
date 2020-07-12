@@ -200,6 +200,22 @@ var keyProps = {
     "POSLOADED1": "/fms/position-loaded[0]",
     "POSLOADED2": "/fms/position-loaded[1]",
     "POSLOADED3": "/fms/position-loaded[2]",
+
+    # Airspeeds
+    "VREF": "/controls/flight/vref",
+    "VAP": "/controls/flight/vappr",
+    "VAC": "/controls/flight/vac",
+    "V1": "/controls/flight/v1",
+    "V2": "/controls/flight/v2",
+    "VR": "/controls/flight/vr",
+    "VFS": "/controls/flight/vfs",
+    "VF": "/controls/flight/vf",
+    "VF1": "/controls/flight/vf1",
+    "VF2": "/controls/flight/vf2",
+    "VF3": "/controls/flight/vf3",
+    "VF4": "/controls/flight/vf4",
+    "VF5": "/controls/flight/vf5",
+    "VF6": "/controls/flight/vf6",
 };
 
 var modelFactory = func (key) {
@@ -472,29 +488,56 @@ var StringView = {
 };
 
 var CycleView = {
-    new: func (x, y, flags, model, values = nil, labels = nil) {
+    new: func (x, y, flags, model, values = nil, labels = nil, wide = nil) {
         if (values == nil) { values = [0, 1]; }
         if (labels == nil) { labels = ["OFF", "ON"]; }
+        if (wide == nil) { wide = 0; }
 
         var m = ModelView.new(x, y, flags, model);
         m.parents = prepended(CycleView, m.parents);
         m.values = values;
         m.labels = labels;
-        m.w = -1;
-        foreach (var val; values) {
-            var label = (typeof(labels) == "func") ? labels(val) : labels[val];
-            m.w += size(label) + 1;
+        m.wide = wide;
+        if (m.wide) {
+            m.w = cells_x;
+            m.x = 0;
+        }
+        else {
+            m.w = -1;
+            foreach (var val; values) {
+                var label = (typeof(labels) == "func") ? labels(val) : labels[val];
+                m.w += size(label) + 1;
+            }
         }
         return m;
     },
 
     draw: func (mcdu, val) {
-        var x = me.x;
-        foreach (var v; me.values) {
-            var label = (typeof(me.labels) == "func") ? me.labels(v) : me.labels[v];
-            if (label == nil) { continue; }
-            mcdu.print(x, me.y, label, (v == val) ? me.flags : 0);
-            x += size(label) + 1;
+        if (me.wide) {
+            if (size(me.values) == 2) {
+                mcdu.print(cells_x / 2 - 1, me.y, "OR", mcdu_large | mcdu_white);
+                if (val == me.values[0]) {
+                    mcdu.print(1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[0]), me.flags);
+                    mcdu.print(cells_x / 2 + 1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[1]) ~ right_triangle, mcdu_large | mcdu_white);
+                }
+                else {
+                    mcdu.print(0, me.y, left_triangle ~ sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[0]), mcdu_large | mcdu_white);
+                    mcdu.print(cells_x / 2 + 1, me.y, sprintf("%-" ~ (cells_x / 2 - 2) ~ "s", me.labels[1]), me.flags);
+                }
+            }
+            else {
+                mcdu.print(1, me.y, sprintf("%-" ~ (cells_x - 4) ~ "s", me.labels[val], me.flags));
+                mcdu.print(cells_x - 3, me.y, "OR" ~ right_triangle, mcdu_large | mcdu_white);
+            }
+        }
+        else {
+            var x = me.x;
+            foreach (var v; me.values) {
+                var label = (typeof(me.labels) == "func") ? me.labels(v) : me.labels[v];
+                if (label == nil) { continue; }
+                mcdu.print(x, me.y, label, (v == val) ? me.flags : 0);
+                x += size(label) + 1;
+            }
         }
     },
 };
@@ -775,6 +818,64 @@ var PropSwapController = {
     },
 };
 
+var ValueController = {
+    new: func (key, options = nil) {
+        var m = ModelController.new(key);
+        m.parents = prepended(ValueController, m.parents);
+
+        if (options == nil) {
+            options = {};
+        }
+        var scale = contains(options, "scale") ? options["scale"] : 1;
+        m.amounts = [ scale, scale * 10, scale * 100, scale * 1000 ];
+        m.min = contains(options, "min") ? options["min"] : 0;
+        m.max = contains(options, "max") ? options["max"] : 500;
+        m.goto = contains(options, "goto") ? options["goto"] : nil;
+        m.boxable = contains(options, "boxable") ? options["boxable"] : 0;
+        return m;
+    },
+
+    parse: func (val) {
+        if (val >= me.min and val <= me.max) { return val; }
+        return nil;
+    },
+
+    select: func (owner, boxed) {
+        if (boxed) {
+            if (me.goto == nil) {
+                return nil;
+            }
+            else if (me.goto == "ret") {
+                owner.ret();
+            }
+            else {
+                owner.goto(me.goto);
+            }
+        }
+        else {
+            if (me.boxable) {
+                owner.box(me.model.getKey());
+            }
+        }
+    },
+
+    dial: func (owner, digit) {
+        if (digit == 0) {
+            return;
+        }
+        var adigit = math.abs(digit) - 1;
+        var amount = me.amounts[adigit];
+        var val = me.model.get();
+        if (digit > 0) {
+            val = math.min(me.max, val + amount);
+        }
+        else {
+            val = math.max(me.min, val - amount);
+        }
+        me.model.set(val);
+    },
+};
+
 var FreqController = {
     new: func (key, goto = nil, ty = nil) {
         var m = ModelController.new(key);
@@ -1048,6 +1149,53 @@ var BaseModule = {
         }
     },
 
+};
+
+var LandingPerfModule = {
+    new: func (mcdu, parentModule) {
+        var m = BaseModule.new(mcdu, parentModule);
+        m.parents = prepended(LandingPerfModule, m.parents);
+        return m;
+    },
+
+    getNumPages: func () { return 2; },
+    getTitle: func () { return "LANDING"; },
+
+    loadPageItems: func (n) {
+        if (n == 0) {
+            me.views = [
+                StaticView.new(1, 1, "RWY OAT", mcdu_white),
+                # TemperatureView.new(0, 2, "OAT-TO", mcdu_white),
+                StaticView.new(0, 2, "+??°C/+??°F", mcdu_white),
+                StaticView.new(cells_x - 8, 1, "LND WGT", mcdu_white),
+                FormatView.new(15, 2, mcdu_white, "WGT-LND", 8, "%6.0fLB"),
+                StaticView.new(1, 3, "APPROACH FLAP", mcdu_white),
+                StaticView.new(1, 5, "LANDING FLAP", mcdu_white),
+                StaticView.new(1, 7, "ICE", mcdu_white),
+                StaticView.new(1, 9, "APPROACH TYPE", mcdu_white),
+                StaticView.new(0, 12, left_triangle ~ "PERF DATA", mcdu_white | mcdu_large),
+                StaticView.new(14, 12, "T.O. DATA" ~ right_triangle, mcdu_white | mcdu_large),
+            ];
+        }
+        else if (n == 1) {
+            me.views = [
+                StaticView.new(1, 1, "VREF", mcdu_white),
+                FormatView.new(0, 2, mcdu_large | mcdu_white, "VREF", 3),
+                StaticView.new(1, 3, "VAP", mcdu_white),
+                FormatView.new(0, 4, mcdu_large | mcdu_white, "VAP", 3),
+                StaticView.new(1, 5, "VAC", mcdu_white),
+                FormatView.new(0, 6, mcdu_large | mcdu_white, "VAC", 3),
+                StaticView.new(1, 7, "VFS", mcdu_white),
+                FormatView.new(0, 8, mcdu_large | mcdu_white, "VFS", 3),
+            ];
+            me.controllers = {
+                "L1": ValueController.new("VREF"),
+                "L2": ValueController.new("VAP"),
+                "L3": ValueController.new("VAC"),
+                "L4": ValueController.new("VFS"),
+            };
+        }
+    },
 };
 
 var IndexModule = {
@@ -1449,7 +1597,15 @@ var MCDU = {
     },
 
     makeModule: {
+        # Radio modules
         "RADIO": func(mcdu, parent) { return RadioModule.new(mcdu, parent); },
+        "NAV1": func (mcdu, parent) { return NavRadioDetailsModule.new(mcdu, parent, 1); },
+        "NAV2": func (mcdu, parent) { return NavRadioDetailsModule.new(mcdu, parent, 2); },
+        "COM1": func (mcdu, parent) { return ComRadioDetailsModule.new(mcdu, parent, 1); },
+        "COM2": func (mcdu, parent) { return ComRadioDetailsModule.new(mcdu, parent, 2); },
+        "XPDR": func (mcdu, parent) { return TransponderModule.new(mcdu, parent); },
+
+        # Index modules
         "NAVINDEX": func(mcdu, parent) { return IndexModule.new(mcdu, parent,
                         "NAV INDEX",
                         [ # PAGE 1
@@ -1482,11 +1638,30 @@ var MCDU = {
                         , nil
                         , nil
                         ]); },
-        "NAV1": func (mcdu, parent) { return NavRadioDetailsModule.new(mcdu, parent, 1); },
-        "NAV2": func (mcdu, parent) { return NavRadioDetailsModule.new(mcdu, parent, 2); },
-        "COM1": func (mcdu, parent) { return ComRadioDetailsModule.new(mcdu, parent, 1); },
-        "COM2": func (mcdu, parent) { return ComRadioDetailsModule.new(mcdu, parent, 2); },
-        "XPDR": func (mcdu, parent) { return TransponderModule.new(mcdu, parent); },
+        "PERFINDEX": func(mcdu, parent) { return IndexModule.new(mcdu, parent,
+                        "PERF INDEX",
+                        [ # PAGE 1
+                          [ nil, "PERF INIT" ],
+                          [ nil, "PERF PLAN" ],
+                          [ nil, "CLIMB" ],
+                          [ nil, "DESCENT" ],
+                          [ nil, "INIT<--WHAT" ],
+                          [ nil, "INIT<-STORE" ],
+
+                          [ nil, "PERF DATA" ],
+                          [ nil, "TAKEOFF" ],
+                          [ nil, "CRUISE" ],
+                          [ "PERF-LANDING", "LANDING" ],
+                          [ nil, "-IF -->DATA" ],
+                          [ nil, "D FPL->DATA" ],
+
+                          # PAGE 2
+                        ]); },
+
+        # Perf
+        "PERF-LANDING": func (mcdu, parent) { return LandingPerfModule.new(mcdu, parent); },
+
+        # Nav
         "NAVIDENT": func (mcdu, parent) { return NavIdentModule.new(mcdu, parent); },
         "POSINIT": func (mcdu, parent) { return PosInitModule.new(mcdu, parent); },
     },
@@ -1573,6 +1748,9 @@ var MCDU = {
         }
         else if (cmd == "RADIO") {
             me.activateModule("RADIO");
+        }
+        else if (cmd == "PERF") {
+            me.activateModule("PERFINDEX");
         }
         else if (cmd == "NAV") {
             me.activateModule("NAVINDEX");
