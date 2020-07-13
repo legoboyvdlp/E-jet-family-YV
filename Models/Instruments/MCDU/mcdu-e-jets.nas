@@ -180,8 +180,15 @@ var keyProps = {
 
     # Misc
     "ACTYPE": "/sim/aircraft",
+    "ACMODEL": "/instrumentation/mcdu/model",
     "ENGINE": "/sim/engine",
     "FGVER": "/sim/version/flightgear",
+    "TAIL": "/sim/model/tail-number",
+
+    # Weights and fuel
+    "WGT-EMPTY": "/fdm/jsbsim/inertia/empty-weight-lbs",
+    "WGT-CUR": "/fdm/jsbsim/inertia/weight-lbs",
+    "FUEL-CUR": "/consumables/fuel/total-fuel-lbs",
 
     # Date/Time
     "ZHOUR": "/sim/time/utc/hour",
@@ -201,7 +208,7 @@ var keyProps = {
     "POSLOADED2": "/fms/position-loaded[1]",
     "POSLOADED3": "/fms/position-loaded[2]",
 
-    # Airspeeds
+    # Speed schedule
     "VREF": "/controls/flight/vref",
     "VAP": "/controls/flight/vappr",
     "VAC": "/controls/flight/vac",
@@ -216,6 +223,17 @@ var keyProps = {
     "VF4": "/controls/flight/vf4",
     "VF5": "/controls/flight/vf5",
     "VF6": "/controls/flight/vf6",
+    "VDEP": "/controls/flight/speed-schedule/departure",
+    "VCLBLO": "/controls/flight/speed-schedule/climb-below-10k",
+    "CLBLOALT": "/controls/flight/speed-schedule/climb-limit-alt",
+    "VCLB": "/controls/flight/speed-schedule/climb-kts",
+    "MCLB": "/controls/flight/speed-schedule/climb-mach",
+    "VCRZ": "/controls/flight/speed-schedule/cruise-kts",
+    "MCRZ": "/controls/flight/speed-schedule/cruise-mach",
+    "MDES": "/controls/flight/speed-schedule/descent-mach",
+    "VDES": "/controls/flight/speed-schedule/descent-kts",
+    "VDESLO": "/controls/flight/speed-schedule/descent-below-10k",
+    "DES-FPA": "/controls/flight/speed-schedule/descent-fpa",
 
     # Landing parameters
     "APPR-FLAPS": "/fms/landing-conditions/approach-flaps",
@@ -657,6 +675,28 @@ var ModelController = {
         if (me.set(val) == nil) {
             # TODO: issue error message on scratchpad
         }
+    },
+};
+
+var MultiModelController = {
+    new: func (models) {
+        var m = BaseController.new();
+        m.parents = prepended(MultiModelController, m.parents);
+        m.models = [];
+        foreach (var model; models) {
+            if (typeof(model) == "scalar") {
+                model = modelFactory(model);
+            }
+            if (model == nil) {
+                model = BaseModel.new();
+            }
+            append(m.models, model);
+        }
+        return m;
+    },
+
+    parse: func (val) {
+        # TODO: CONTINUE HERE!
     },
 };
 
@@ -1298,7 +1338,7 @@ var TransponderModule = {
                 StaticView.new(  8, 10, "XPDR 2",                 mcdu_white ),
                 StaticView.new( 18, 10, "IDENT",                  mcdu_large | mcdu_white ),
                 StaticView.new( 23, 10, black_square,             mcdu_large | mcdu_white ),
-                StaticView.new( 22 - size(me.ptitle), 12, me.ptitle, mcdu_large | mcdu_white ),
+                StaticView.new( 23 - size(me.ptitle), 12, me.ptitle, mcdu_large | mcdu_white ),
                 StaticView.new( 23, 12, right_triangle,           mcdu_large | mcdu_white ),
             ];
             me.controllers = {
@@ -1494,30 +1534,30 @@ var PosInitModule = {
             if (me.ptitle != nil) {
                 me.controllers["R6"] = SubmodeController.new("ret");
                 append(me.views,
-                     StaticView.new(22 - size(me.ptitle), 12, me.ptitle ~ right_triangle, mcdu_large));
+                     StaticView.new(23 - size(me.ptitle), 12, me.ptitle ~ right_triangle, mcdu_large));
             }
         }
     },
 };
 
 var NavRadioDetailsModule = {
-    new: func (mcdu, parentModule, navNum) {
+    new: func (mcdu, parentModule, radioNum) {
         var m = BaseModule.new(mcdu, parentModule);
-        m.parents = prepended(NavComRadioDetailsModule, m.parents);
-        m.navNum = navNum;
+        m.parents = prepended(NavRadioDetailsModule, m.parents);
+        m.radioNum = radioNum;
         return m;
     },
 
     getNumPages: func () { return 1; },
-    getTitle: func () { return "NAV" ~ navNum; },
+    getTitle: func () { return "NAV" ~ me.radioNum; },
 
     loadPageItems: func (n) {
         if (n == 0) {
             me.views = [
-                FreqView.new(1, 2, mcdu_large |  mcdu_green, "NAV" ~ me.navNum ~ "A"),
-                FreqView.new(1, 4, mcdu_large |  mcdu_yellow, "NAV" ~ me.navNum ~ "S"),
-                CycleView.new(17, 4, mcdu_large | mcdu_green, "DME" ~ me.navNum ~ "H"),
-                CycleView.new(17, 10, mcdu_large | mcdu_green, "NAV" ~ me.navNum ~ "AUTO"),
+                FreqView.new(1, 2, mcdu_large |  mcdu_green, "NAV" ~ me.radioNum ~ "A"),
+                FreqView.new(1, 4, mcdu_large |  mcdu_yellow, "NAV" ~ me.radioNum ~ "S"),
+                CycleView.new(17, 4, mcdu_large | mcdu_green, "DME" ~ me.radioNum ~ "H"),
+                CycleView.new(17, 10, mcdu_large | mcdu_green, "NAV" ~ me.radioNum ~ "AUTO"),
                 StaticView.new(  1,  1, "ACTIVE",                 mcdu_white ),
                 StaticView.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
                 StaticView.new(  1,  3, "PRESET",                 mcdu_white ),
@@ -1526,36 +1566,38 @@ var NavRadioDetailsModule = {
                 StaticView.new( 15,  9, "FMS AUTO",               mcdu_white ),
                 StaticView.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
                 StaticView.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
-                StaticView.new( 14, 12, me.ptitle, mcdu_large | mcdu_white ),
-                StaticView.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
             ];
             me.controllers = {
-                "L1": PropSwapController.new("NAV" ~ me.navNum ~ "S", "NAV" ~ me.navNum ~ "A"),
-                "L2": FreqController.new("NAV" ~ me.navNum ~ "S"),
-                "R2": CycleController.new("DME" ~ me.navNum ~ "H"),
-                "R5": CycleController.new("NAV" ~ me.navNum ~ "AUTO"),
-                "R6": SubmodeController.new("ret"),
+                "L1": PropSwapController.new("NAV" ~ me.radioNum ~ "S", "NAV" ~ me.radioNum ~ "A"),
+                "L2": FreqController.new("NAV" ~ me.radioNum ~ "S"),
+                "R2": CycleController.new("DME" ~ me.radioNum ~ "H"),
+                "R5": CycleController.new("NAV" ~ me.radioNum ~ "AUTO"),
             };
+            if (me.ptitle != nil) {
+                me.controllers["R6"] = SubmodeController.new("ret");
+                append(me.views,
+                     StaticView.new(23 - size(me.ptitle), 12, me.ptitle ~ right_triangle, mcdu_large));
+            }
         }
     },
 };
 
 var ComRadioDetailsModule = {
-    new: func (mcdu, parentModule, navNum) {
+    new: func (mcdu, parentModule, radioNum) {
         var m = BaseModule.new(mcdu, parentModule);
-        m.parents = prepended(ComComRadioDetailsModule, m.parents);
-        m.navNum = navNum;
+        m.parents = prepended(ComRadioDetailsModule, m.parents);
+        m.radioNum = radioNum;
         return m;
     },
 
     getNumPages: func () { return 1; },
-    getTitle: func () { return "COM" ~ navNum; },
+    getTitle: func () { return "COM" ~ me.radioNum; },
 
     loadPageItems: func (n) {
         if (n == 0) {
             me.views = [
-                FreqView.new(1, 2, mcdu_large |  mcdu_green, "COM" ~ me.navNum ~ "A"),
-                FreqView.new(1, 4, mcdu_large |  mcdu_yellow, "COM" ~ me.navNum ~ "S"),
+                FreqView.new(1, 2, mcdu_large |  mcdu_green, "COM" ~ me.radioNum ~ "A"),
+                FreqView.new(1, 4, mcdu_large |  mcdu_yellow, "COM" ~ me.radioNum ~ "S"),
                 StaticView.new(  1,  1, "ACTIVE",                 mcdu_white ),
                 StaticView.new(  0,  2, up_down_arrow, mcdu_large | mcdu_white ),
                 StaticView.new(  1,  3, "PRESET",                 mcdu_white ),
@@ -1566,14 +1608,16 @@ var ComRadioDetailsModule = {
                 StaticView.new( 19,  5, "FREQ",                   mcdu_white ),
                 StaticView.new(  0, 12, left_triangle, mcdu_large | mcdu_white ),
                 StaticView.new(  1, 12, "MEMORY", mcdu_large | mcdu_white ),
-                StaticView.new( 14, 12, me.ptitle, mcdu_large | mcdu_white ),
-                StaticView.new( 23, 12, right_triangle, mcdu_large | mcdu_white ),
             ];
             me.controllers = {
-                "L1": PropSwapController.new("COM" ~ me.navNum ~ "S", "COM" ~ me.navNum ~ "A"),
-                "L2": FreqController.new("COM" ~ me.navNum ~ "S"),
-                "R6": SubmodeController.new("ret"),
+                "L1": PropSwapController.new("COM" ~ me.radioNum ~ "S", "COM" ~ me.radioNum ~ "A"),
+                "L2": FreqController.new("COM" ~ me.radioNum ~ "S"),
             };
+            if (me.ptitle != nil) {
+                me.controllers["R6"] = SubmodeController.new("ret");
+                append(me.views,
+                     StaticView.new(23 - size(me.ptitle), 12, me.ptitle ~ right_triangle, mcdu_large));
+            }
         }
     },
 };

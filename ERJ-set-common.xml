@@ -11,6 +11,7 @@
             <livery>
                 <file type="string"/>
             </livery>
+            <tail-number>PP-EMB</tail-number>
 
             <E-jet-family>
                 <heading-bug-pfd-deg type="double">0</heading-bug-pfd-deg>
@@ -687,6 +688,7 @@
             <speed-schedule>
                 <departure type="double">200</departure>
                 <climb-below-10k type="double">250</climb-below-10k>
+                <climb-limit-alt type="double">10000</climb-limit-alt>
                 <climb-kts type="double">280</climb-kts>
                 <climb-mach type="double">0.73</climb-mach>
                 <cruise-kts type="double">300</cruise-kts>
@@ -694,6 +696,7 @@
                 <descent-mach type="double">0.76</descent-mach>
                 <descent-kts type="double">290</descent-kts>
                 <descent-below-10k type="double">250</descent-below-10k>
+                <descent-fpa type="double">3.0</descent-fpa>
                 <initial-approach type="double">210</initial-approach>
             </speed-schedule>
             <selected-alt type="double">5000</selected-alt>
