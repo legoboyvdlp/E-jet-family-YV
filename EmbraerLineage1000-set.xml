@@ -93,7 +93,7 @@
 	<instrumentation>
 		<mcdu>
 			<ident>
-				<model>ERJ190-100</model>
+				<model>E190-100 ECJ</model>
 				<engines>GE_CF34-10E</engines>
 			</ident>
 		</mcdu>

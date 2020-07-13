@@ -56,7 +56,7 @@
     <instrumentation>
         <mcdu>
             <ident>
-                <model>ERJ170-100</model>
+                <model>E170-100</model>
                 <engines>GE_CF34-8E</engines>
             </ident>
         </mcdu>

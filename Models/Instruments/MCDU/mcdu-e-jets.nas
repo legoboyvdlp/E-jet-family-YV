@@ -180,15 +180,21 @@ var keyProps = {
 
     # Misc
     "ACTYPE": "/sim/aircraft",
-    "ACMODEL": "/instrumentation/mcdu/model",
+    "ACMODEL": "/instrumentation/mcdu/ident/model",
     "ENGINE": "/sim/engine",
     "FGVER": "/sim/version/flightgear",
     "TAIL": "/sim/model/tail-number",
+    "TRANSALT": "/controls/flight/transition-alt",
 
     # Weights and fuel
     "WGT-EMPTY": "/fdm/jsbsim/inertia/empty-weight-lbs",
     "WGT-CUR": "/fdm/jsbsim/inertia/weight-lbs",
-    "FUEL-CUR": "/consumables/fuel/total-fuel-lbs",
+    "WGT-ZF": "/fms/fuel/zfw-kg",
+    "FUEL-CUR": "/consumables/fuel/total-fuel-kg",
+    "FUEL-RESERVE": "/fms/fuel/reserve",
+    "FUEL-TAKEOFF": "/fms/fuel/takeoff",
+    "FUEL-LANDING": "/fms/fuel/landing",
+    "FUEL-CONTINGENCY": "/fms/fuel/contingency",
 
     # Date/Time
     "ZHOUR": "/sim/time/utc/hour",
@@ -204,9 +210,9 @@ var keyProps = {
     "GPSLON": "/instrumentation/gps/indicated-longitude-deg",
     "RAWLAT": "/position/latitude-deg",
     "RAWLON": "/position/longitude-deg",
-    "POSLOADED1": "/fms/position-loaded[0]",
-    "POSLOADED2": "/fms/position-loaded[1]",
-    "POSLOADED3": "/fms/position-loaded[2]",
+    "POSLOADED1": "/fms/radio/position-loaded[0]",
+    "POSLOADED2": "/fms/radio/position-loaded[1]",
+    "POSLOADED3": "/fms/radio/position-loaded[2]",
 
     # Speed schedule
     "VREF": "/controls/flight/vref",
@@ -230,10 +236,13 @@ var keyProps = {
     "MCLB": "/controls/flight/speed-schedule/climb-mach",
     "VCRZ": "/controls/flight/speed-schedule/cruise-kts",
     "MCRZ": "/controls/flight/speed-schedule/cruise-mach",
+    "CRZ-MODE": "/controls/flight/speed-schedule/cruise-mode",
+    "CRZ-ALT": "/autopilot/route-manager/cruise/altitude-ft",
     "MDES": "/controls/flight/speed-schedule/descent-mach",
     "VDES": "/controls/flight/speed-schedule/descent-kts",
     "VDESLO": "/controls/flight/speed-schedule/descent-below-10k",
     "DES-FPA": "/controls/flight/speed-schedule/descent-fpa",
+    "PERF-MODE": "/controls/flight/perf-mode",
 
     # Landing parameters
     "APPR-FLAPS": "/fms/landing-conditions/approach-flaps",
@@ -537,6 +546,9 @@ var CycleView = {
     },
 
     draw: func (mcdu, val) {
+        if (val == nil) {
+            val = me.values[0];
+        }
         if (me.wide) {
             if (size(me.values) == 2) {
                 mcdu.print(cells_x / 2 - 1, me.y, "OR", mcdu_large | mcdu_white);
@@ -551,7 +563,7 @@ var CycleView = {
                 mcdu.print(cells_x - 1, me.y, right_triangle, mcdu_large | mcdu_white);
             }
             else {
-                mcdu.print(1, me.y, sprintf("%-" ~ (cells_x - 4) ~ "s", me.labels[val]), me.flags);
+                mcdu.print(0, me.y, sprintf("%-" ~ (cells_x - 4) ~ "s", me.labels[val]), me.flags);
                 mcdu.print(cells_x - 3, me.y, "OR" ~ right_triangle, mcdu_large | mcdu_white);
             }
         }
@@ -639,7 +651,7 @@ var BaseController = {
 };
 
 var ModelController = {
-    new: func (model) {
+    new: func (model, parseFunc = nil) {
         var m = BaseController.new();
         m.parents = prepended(ModelController, m.parents);
         if (typeof(model) == "scalar") {
@@ -648,6 +660,7 @@ var ModelController = {
         else {
             m.model = model;
         }
+        m.parseFunc = parseFunc;
         return m;
     },
 
@@ -659,6 +672,9 @@ var ModelController = {
     # Parse a raw string into a formatted value.
     # Return the parsed value, or nil if the parse failed.
     parse: func (val) {
+        if (me.parseFunc != nil) {
+            val = me.parseFunc(val);
+        }
         return val;
     },
 
@@ -696,7 +712,25 @@ var MultiModelController = {
     },
 
     parse: func (val) {
-        # TODO: CONTINUE HERE!
+        return split("/", val);
+    },
+
+    set: func (val) {
+        var vals = me.parse(val);
+        if (vals != nil) {
+            forindex (var i; me.models) {
+                if (vals[i] != '') {
+                    me.models[i].set(vals[i]);
+                }
+            }
+        }
+        return vals;
+    },
+
+    send: func (owner, val) {
+        if (me.set(val) == nil) {
+            # TODO: issue error message on scratchpad
+        }
     },
 };
 
@@ -1196,6 +1230,117 @@ var BaseModule = {
         }
     },
 
+};
+
+var PerfInitModule = {
+    new: func (mcdu, parentModule) {
+        var m = BaseModule.new(mcdu, parentModule);
+        m.parents = prepended(PerfInitModule, m.parents);
+        return m;
+    },
+
+    getNumPages: func () { return 3; },
+    getTitle: func () {
+        if (me.page == 1) {
+            return "PERFORMANCE INIT-KG";
+        }
+        else {
+            return "PERFORMANCE INIT   ";
+        }
+    },
+
+    loadPageItems: func (n) {
+        if (n == 0) {
+            me.views = [
+                StaticView.new(1, 1, "ACFT TYPE", mcdu_white),
+                FormatView.new(0, 2, mcdu_large | mcdu_green, "ACMODEL", 11, "%-11s"),
+                StaticView.new(17, 1, "TAIL #", mcdu_white),
+                FormatView.new(12, 2, mcdu_large | mcdu_green, "TAIL", 11, "%11s"),
+
+                StaticView.new(1, 3, "PERF MODE", mcdu_white),
+                CycleView.new(0, 4, mcdu_large | mcdu_green, "PERF-MODE",
+                    [1, 2, 0], ["FULL PERF", "CURRENT GS/FF", "PILOT SPD/FF"], 1),
+                StaticView.new(1, 5, "CLIMB", mcdu_white),
+                FormatView.new(0, 6, mcdu_large | mcdu_green, "VCLB", 3, "%3.0f/"),
+                FormatView.new(4, 6, mcdu_large | mcdu_green, "MCLB", 3, "%3.2fM"),
+                StaticView.new(1, 7, "CRUISE", mcdu_white),
+                CycleView.new(0, 8, mcdu_large | mcdu_green, "CRZ-MODE",
+                    [0, 1, 2, 3], ["LRC", "MAX SPD", "MAX END", "MXR SPD"], 1),
+                StaticView.new(1, 9, "DESCENT", mcdu_white),
+                FormatView.new(0, 10, mcdu_large | mcdu_green, "VDES", 3, "%3.0f/"),
+                FormatView.new(4, 10, mcdu_large | mcdu_green, "MDES", 3, "%3.2fM/"),
+                FormatView.new(10, 10, mcdu_large | mcdu_green, "DES-FPA", 3, "%3.1f"),
+
+                StaticView.new(0, 12, left_triangle ~ "DEP/APP SPD", mcdu_large | mcdu_white),
+            ];
+
+            me.controllers = {
+                "R2": CycleController.new("PERF-MODE", [1, 2, 0]),
+                "L3": MultiModelController.new(["VCLB", "MCLB"]),
+                "R4": CycleController.new("CRZ-MODE", [0, 1, 2, 3]),
+                "L5": MultiModelController.new(["VDES", "MDES", "DES-FPA"]),
+                # "L6": SubmodeController.new("DEP-APP-SPD"),
+            };
+        }
+        else if (n == 1) {
+            me.views = [
+                StaticView.new(1, 1, "STEP INCREMENT", mcdu_white),
+                StaticView.new(1, 2, "4000", mcdu_large | mcdu_white),
+
+                StaticView.new(1, 3, "FUEL RESERVE", mcdu_white),
+                FormatView.new(0, 4, mcdu_large | mcdu_green, "FUEL-RESERVE", 3, "%3.0f KG"),
+                StaticView.new(1, 5, "TO/LDG FUEL", mcdu_white),
+                FormatView.new(0, 6, mcdu_large | mcdu_green, "FUEL-TAKEOFF", 3, "%3.0f/"),
+                FormatView.new(4, 6, mcdu_large | mcdu_green, "FUEL-LANDING", 3, "%-3.0fKG"),
+                StaticView.new(1, 7, "CONTINGENCY FUEL", mcdu_white),
+                FormatView.new(0, 8, mcdu_large | mcdu_green, "FUEL-CONTINGENCY", 3, "%3.0fKG"),
+            ];
+
+            me.controllers = {
+                "L2": ModelController.new("FUEL-RESERVE"),
+                "L3": MultiModelController.new(["FUEL-TAKEOFF", "FUEL-LANDING"]),
+                "L4": ModelController.new("FUEL-CONTINGENCY"),
+            };
+        }
+        else if (n == 2) {
+            me.views = [
+                StaticView.new(1, 1, "TRANS ALT", mcdu_white),
+                FormatView.new(0, 2, mcdu_large | mcdu_green, "TRANSALT", 5, "%5.0f"),
+                StaticView.new(12, 1, "SPD/ALT LIM", mcdu_white),
+                FormatView.new(15, 2, mcdu_large | mcdu_green, "VCLBLO", 3, "%3.0f/"),
+                FormatView.new(19, 2, mcdu_large | mcdu_green, "CLBLOALT", 3, "%5.0f"),
+                StaticView.new(1, 3, "INIT CRZ ALT", mcdu_white),
+                FormatView.new(0, 4, mcdu_large | mcdu_green, "CRZ-ALT",
+                    5, "FL%03.0f", func(val) { return val / 100; }),
+                StaticView.new(16, 3, "ISA DEV", mcdu_white),
+                StaticView.new(20, 4, "+0°C", mcdu_large | mcdu_white),
+                StaticView.new(1, 5, "CRZ WINDS", mcdu_white),
+                StaticView.new(12, 5, "AT ALTITUDE", mcdu_white),
+                StaticView.new(1, 7, "ZFW", mcdu_white),
+                StaticView.new(11, 7, "(GAUGE) FUEL", mcdu_white),
+                FormatView.new(0, 8, mcdu_large | mcdu_green, "WGT-ZF", 5, "%5.0f"),
+                FormatView.new(11, 8, mcdu_green, "FUEL-CUR", 7, "(%1.0f)"),
+                FormatView.new(18, 8, mcdu_large | mcdu_green, "FUEL-CUR", 5, "%5.0f"),
+                StaticView.new(15, 9, "GROSS WT", mcdu_white),
+                FormatView.new(18, 10, mcdu_large | mcdu_green, "WGT-CUR", 5, "%5.0f"),
+
+                StaticView.new(0, 12, left_triangle ~ "DEP/APP", mcdu_large | mcdu_white),
+                StaticView.new(11, 12, "CONFIRM INIT" ~ right_triangle, mcdu_large | mcdu_white),
+            ];
+
+            me.controllers = {
+                "L1": ModelController.new("TRANSALT"),
+                "L2": ModelController.new("CRZ-ALT", func (val) {
+                    if (val < 1000) {
+                        return val * 100;
+                    }
+                    else {
+                        return val;
+                    }
+                }),
+            };
+        }
+    },
 };
 
 var LandingPerfModule = {
@@ -1707,7 +1852,7 @@ var MCDU = {
         "PERFINDEX": func(mcdu, parent) { return IndexModule.new(mcdu, parent,
                         "PERF INDEX",
                         [ # PAGE 1
-                          [ nil, "PERF INIT" ],
+                          [ "PERFINIT", "PERF INIT" ],
                           [ nil, "PERF PLAN" ],
                           [ nil, "CLIMB" ],
                           [ nil, "DESCENT" ],
@@ -1726,6 +1871,7 @@ var MCDU = {
 
         # Perf
         "PERF-LANDING": func (mcdu, parent) { return LandingPerfModule.new(mcdu, parent); },
+        "PERFINIT": func (mcdu, parent) { return PerfInitModule.new(mcdu, parent); },
 
         # Nav
         "NAVIDENT": func (mcdu, parent) { return NavIdentModule.new(mcdu, parent); },

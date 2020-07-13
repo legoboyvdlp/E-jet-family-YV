@@ -62,7 +62,7 @@
 	<instrumentation>
 		<mcdu>
 			<ident>
-				<model>ERJ195-200</model>
+				<model>E195-200LR</model>
 				<engines>GE_CF34-10E</engines>
 			</ident>
 		</mcdu>

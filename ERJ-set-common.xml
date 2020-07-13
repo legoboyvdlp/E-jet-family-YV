@@ -114,6 +114,9 @@
             <property-rule n="100">
                 <path>Aircraft/E-jet-family/Systems/pfd.xml</path>
             </property-rule>
+            <property-rule n="101">
+                <path>Aircraft/E-jet-family/Systems/fms.xml</path>
+            </property-rule>
             <electrical><path></path></electrical><!--Disable XML electrical system-->
         </systems>
 
@@ -570,6 +573,16 @@
             -->
             <approach-cat>1</approach-cat>
         </landing-conditions>
+
+        <fuel>
+            <!-- fuel budgetting for performance planning -->
+            <!-- ALL FIGURES IN KG! -->
+            <reserve type="double">800</reserve>
+            <takeoff type="double">100</takeoff>
+            <landing type="double">70</landing>
+            <contingency type="double">300</contingency>
+        </fuel>
+
     </fms>
 
     <controls>
@@ -693,6 +706,7 @@
                 <climb-mach type="double">0.73</climb-mach>
                 <cruise-kts type="double">300</cruise-kts>
                 <cruise-mach type="double">0.76</cruise-mach>
+                <cruise-mode type="int">0</cruise-mode>
                 <descent-mach type="double">0.76</descent-mach>
                 <descent-kts type="double">290</descent-kts>
                 <descent-below-10k type="double">250</descent-below-10k>
@@ -700,7 +714,9 @@
                 <initial-approach type="double">210</initial-approach>
             </speed-schedule>
             <selected-alt type="double">5000</selected-alt>
+            <transition-alt type="double">5000</transition-alt>
             <vnav-enabled type="bool">false</vnav-enabled>
+            <perf-mode>0</perf-mode>
         </flight>
 
         <gear>

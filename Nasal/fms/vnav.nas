@@ -2,8 +2,6 @@
 
 var nm_to_feet = 6076.0;
 var feet_to_nm = 1.0 / nm_to_feet;
-var climb_feet_per_nm = 318.0; # 3° climb
-var descent_feet_per_nm = -318.0;
 
 # Calculate FPA in degrees from a distance in nmi and an altitude difference
 # in ft.
@@ -68,6 +66,8 @@ var wpLowerBound = func(wp) {
 }
 
 var make_profile = func () {
+    var descent_fpa = -math.abs(getprop("/controls/flight/speed-schedule/descent-fpa"));
+    var descent_feet_per_nm = fpaToGradient(descent_fpa);
     var fp = flightplan();
     if (fp == nil) {
         print("VNAV: No flightplan");
