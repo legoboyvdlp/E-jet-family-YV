@@ -205,7 +205,8 @@ var keyProps = {
     "ZYEAR": "/sim/time/utc/year",
 
     # Position
-    "FLTID": "/sim/multiplay/callsign",
+    "CALLSIG": "/sim/multiplay/callsign",
+    "FLTID": "/sim/multiplay/callsign", # TODO: separate property for this
     "GPSLAT": "/instrumentation/gps/indicated-latitude-deg",
     "GPSLON": "/instrumentation/gps/indicated-longitude-deg",
     "RAWLAT": "/position/latitude-deg",
@@ -252,7 +253,7 @@ var keyProps = {
 };
 
 var modelFactory = func (key) {
-    # for now, only PropModel can be loaded supported
+    # for now, only PropModel can be loaded
     if (contains(keyProps, key)) {
         return PropModel.new(key);
     }
@@ -275,6 +276,66 @@ var BaseModel = {
     getKey: func () { return nil; },
     subscribe: func (f) { return nil; },
     unsubscribe: func (l) { },
+};
+
+var FuncModel = {
+    new: func (key, getter, setter) {
+        var m = BaseModel.new();
+        m.parents = prepended(FuncModel, m.parents);
+        m.getter = getter;
+        m.setter = setter;
+        m.subscribers = {};
+        m.key = key;
+        m.nextSubscriberID = 1;
+        return m;
+    },
+
+    getKey: func () { return me.key; },
+
+    get: func () {
+        if (typeof(me.getter) == "func") {
+            return me.getter();
+        }
+        else {
+            return nil;
+        }
+    },
+
+    set: func (val) {
+        if (typeof(me.setter) != "func") {
+            return nil;
+        }
+        me.setter(val);
+        foreach (var k; keys(me.subscribers)) {
+            var f = me.subscribers[k];
+            if (typeof(f) == 'func') {
+                f(val);
+            }
+        }
+    },
+
+    subscribe: func (f) {
+        var k = me.nextSubscriberID;
+        me.nextSubscriberID += 1;
+        me.subscribers[k] = f;
+        return k;
+    },
+
+    unsubscribe: func (k) {
+        delete(me.subscribers, k);
+    },
+
+};
+
+var ObjectFieldModel = {
+    new: func (key, object, field) {
+        var m = FuncModel.new(
+                    key,
+                    func() { return object[field]; },
+                    func(val) { object[field] = val; });
+        m.parents = prepended(ObjectFieldModel, m.parents);
+        return m;
+    },
 };
 
 var PropModel = {
@@ -317,6 +378,39 @@ var PropModel = {
     unsubscribe: func (l) {
         removelistener(l);
     },
+};
+
+var fpDepartureLens = {
+    get: func (fp) { return fp.departure; },
+    set: func (fp, val) { fp.departure = val; },
+};
+
+var fpDestinationLens = {
+    get: func (fp) { return fp.destination; },
+    set: func (fp, val) { fp.destination = val; },
+};
+
+var fpLenses = {
+    'departure': fpDepartureLens,
+    'destination': fpDestinationLens,
+};
+
+var makeAirportModel = func(owner, key, fp, field) {
+    var lens = fpLenses[field];
+    return FuncModel.new(key,
+        func () {
+            var ap = lens.get(fp);
+            if (ap == nil) return "----";
+            return ap.id;
+        },
+        func (icao) {
+            if (size(icao) != 4) return nil;
+            var aps = findAirportsByICAO(icao);
+            if (size(aps) == 1) {
+                lens.set(fp, aps[0]);
+                owner.fullRedraw();
+            }
+        });
 };
 
 # -------------- VIEWS -------------- 
@@ -735,10 +829,11 @@ var MultiModelController = {
 };
 
 var SubmodeController = {
-    new: func (submode) {
+    new: func (submode, pushStack = 1) {
         var m = BaseController.new();
         m.parents = prepended(SubmodeController, m.parents);
         m.submode = submode;
+        m.pushStack = pushStack;
         return m;
     },
 
@@ -747,7 +842,12 @@ var SubmodeController = {
             owner.ret();
         }
         else {
-            owner.goto(me.submode);
+            if (me.pushStack) {
+                owner.push(me.submode);
+            }
+            else {
+                owner.goto(me.submode);
+            }
         }
     },
 };
@@ -838,7 +938,7 @@ var TransponderController = {
                 owner.ret();
             }
             else {
-                owner.goto(me.goto);
+                owner.push(me.goto);
             }
         }
         else {
@@ -930,7 +1030,7 @@ var ValueController = {
                 owner.ret();
             }
             else {
-                owner.goto(me.goto);
+                owner.push(me.goto);
             }
         }
         else {
@@ -1008,7 +1108,7 @@ var FreqController = {
                 owner.ret();
             }
             else {
-                owner.goto(me.goto);
+                owner.push(me.goto);
             }
         }
         else {
@@ -1185,8 +1285,12 @@ var BaseModule = {
         }
     },
 
-    goto: func (target) {
+    push: func (target) {
         me.mcdu.pushModule(target);
+    },
+
+    goto: func (target) {
+        me.mcdu.gotoModule(target);
     },
 
     ret: func () {
@@ -1226,6 +1330,86 @@ var BaseModule = {
             var digit = dialIndex(cmd);
             if (me.boxedController != nil) {
                 me.boxedController.dial(me, digit);
+            }
+        }
+    },
+
+};
+
+var RouteModule = {
+    new: func (mcdu, parentModule, fp = nil) {
+        var m = BaseModule.new(mcdu, parentModule);
+        m.parents = prepended(RouteModule, m.parents);
+        if (fp == nil) {
+            # m.fp = createFlightplan();
+            m.fp = flightplan();
+        }
+        else {
+            m.fp = fp;
+        }
+        m.models = {
+            "DEPARTURE-AIRPORT": makeAirportModel(m, "DEPARTURE-AIRPORT", m.fp, "departure"),
+            "DESTINATION-AIRPORT": makeAirportModel(m, "DESTINATION-AIRPORT", m.fp, "destination"),
+        };
+        return m;
+    },
+
+    getNumPages: func () {
+        var numEntries = me.fp.getPlanSize() - 1;
+        if (me.fp.destination != nil) { numEntries += 2; }
+        return 1 + math.ceil(numEntries / 5);
+    },
+
+    getTitle: func () { return "RTE"; },
+
+    loadPageItems: func (p) {
+        if (p == 0) {
+            me.views = [
+                StaticView.new(1, 1, "ORIGIN/ETD", mcdu_white),
+                FormatView.new(1, 2, mcdu_green | mcdu_large, me.models["DEPARTURE-AIRPORT"], 4),
+                StaticView.new(cells_x - 5, 1, "DEST", mcdu_white),
+                FormatView.new(cells_x - 5, 2, mcdu_green | mcdu_large, me.models["DESTINATION-AIRPORT"], 4),
+                StaticView.new(1, 3, "RUNWAY", mcdu_white),
+                StaticView.new(cells_x - 9, 3, "CO ROUTE", mcdu_white),
+                StaticView.new(1, 5, "FPL REQST", mcdu_white),
+                StaticView.new(cells_x - 11, 5, "FPL REPORT", mcdu_white),
+                StaticView.new(1, 6, "DATA LINK UNAVAILABLE", mcdu_white | mcdu_large),
+                StaticView.new(1, 7, "CALL SIGN", mcdu_white),
+                StaticView.new(cells_x - 10, 7, "FLIGHT ID", mcdu_white),
+                FormatView.new(1, 8, mcdu_green | mcdu_large, "CALLSIG", 6),
+                FormatView.new(12, 8, mcdu_green | mcdu_large, "FLTID", 11),
+            ];
+
+            me.controllers = {
+                "L1": ModelController.new(me.models["DEPARTURE-AIRPORT"]),
+                "R1": ModelController.new(me.models["DESTINATION-AIRPORT"]),
+                "L5": ModelController.new("CALLSIG"),
+                "R5": ModelController.new("FLTID"),
+            };
+        }
+        else {
+            var numWaypoints = me.fp.getPlanSize();
+            var firstWP = (p - 1) * 5 + 1;
+            me.views = [];
+            me.controllers = {};
+            append(me.views, StaticView.new(1, 1, "VIA", mcdu_white));
+            append(me.views, StaticView.new(21, 1, "TO", mcdu_white));
+            var y = 2;
+            for (var i = 0; i < 5; i += 1) {
+                var wp = me.fp.getWP(firstWP + i);
+                if (wp == nil) {
+                    append(me.views, StaticView.new(0, y, "-----", mcdu_green | mcdu_large));
+                    if (y + 2 <= 10) {
+                        append(me.views, StaticView.new(cells_x - 5, y + 1, "DEST", mcdu_white));
+                        append(me.views, FormatView.new(cells_x - 4, y + 2, mcdu_green | mcdu_large, me.models["DESTINATION-AIRPORT"], 4));
+                    }
+                    break;
+                }
+                else {
+                    append(me.views, StaticView.new(0, y, "DIRECT", mcdu_green | mcdu_large));
+                    append(me.views, StaticView.new(18, y, sprintf("%6s", wp.wp_name), mcdu_green | mcdu_large));
+                }
+                y += 2;
             }
         }
     },
@@ -1640,7 +1824,7 @@ var NavIdentModule = {
                 StaticView.new(12, 12, "   POS INIT" ~ right_triangle, mcdu_large | mcdu_white),
             ];
             me.controllers = {
-                "R6": SubmodeController.new("POSINIT"),
+                "R6": SubmodeController.new("POSINIT", 0),
             };
         }
     },
@@ -1680,6 +1864,11 @@ var PosInitModule = {
                 me.controllers["R6"] = SubmodeController.new("ret");
                 append(me.views,
                      StaticView.new(23 - size(me.ptitle), 12, me.ptitle ~ right_triangle, mcdu_large));
+            }
+            else {
+                append(me.views,
+                    StaticView.new(       20, 12, "RTE" ~ right_triangle, mcdu_large | mcdu_white));
+                me.controllers["R6"] = SubmodeController.new("RTE");
             }
         }
     },
@@ -1875,6 +2064,7 @@ var MCDU = {
 
         # Nav
         "NAVIDENT": func (mcdu, parent) { return NavIdentModule.new(mcdu, parent); },
+        "RTE": func (mcdu, parent) { return RouteModule.new(mcdu, parent); },
         "POSINIT": func (mcdu, parent) { return PosInitModule.new(mcdu, parent); },
     },
 
@@ -1959,13 +2149,16 @@ var MCDU = {
             me.popScratchpad();
         }
         else if (cmd == "RADIO") {
-            me.activateModule("RADIO");
+            me.gotoModule("RADIO");
+        }
+        else if (cmd == "RTE") {
+            me.gotoModule("RTE");
         }
         else if (cmd == "PERF") {
-            me.activateModule("PERFINDEX");
+            me.gotoModule("PERFINDEX");
         }
         else if (cmd == "NAV") {
-            me.activateModule("NAVINDEX");
+            me.gotoModule("NAVINDEX");
         }
         else if (cmd == "NEXT") {
             if (me.activeModule != nil) {
