@@ -1381,10 +1381,8 @@ var FlightPlanModule = {
     },
 
     activate: func () {
-        print("activate");
         me.loadPage(0);
         me.timer = maketimer(1, me, func () {
-            print("Redraw " ~ me.page);
             me.loadPage(me.page);
             me.fullRedraw();
         });
@@ -1392,7 +1390,6 @@ var FlightPlanModule = {
     },
 
     deactivate: func () {
-        print("deactivate");
         if (me.timer != nil) {
             me.timer.stop();
             me.timer = nil;
