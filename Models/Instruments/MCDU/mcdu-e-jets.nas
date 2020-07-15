@@ -1336,6 +1336,140 @@ var BaseModule = {
 
 };
 
+var PlaceholderModule = {
+    new: func (mcdu, parentModule, name) {
+        var m = BaseModule.new(mcdu, parentModule);
+        m.parents = prepended(PlaceholderModule, m.parents);
+        m.name = name;
+        return m;
+    },
+
+    getNumPages: func () { return 1; },
+    getTitle: func () { return me.name; },
+
+    loadPageItems: func (p) {
+        me.views = [
+            StaticView.new(1, 6, "MODULE NOT IMPLEMENTED", mcdu_red | mcdu_large),
+        ];
+        me.controllers = {};
+        if (me.ptitle != nil) {
+            me.controllers["R6"] = SubmodeController.new("ret");
+            append(me.views,
+                 StaticView.new(23 - size(me.ptitle), 12, me.ptitle ~ right_triangle, mcdu_large));
+        }
+    },
+};
+
+var FlightPlanModule = {
+    new: func (mcdu, parentModule, fp = nil) {
+        var m = BaseModule.new(mcdu, parentModule);
+        m.parents = prepended(FlightPlanModule, m.parents);
+        if (fp == nil) {
+            # m.fp = createFlightplan();
+            m.fp = flightplan();
+        }
+        else {
+            m.fp = fp;
+        }
+        m.timer = nil;
+        return m;
+    },
+
+    getNumPages: func () {
+        var numEntries = me.fp.getPlanSize();
+        return math.max(1, math.ceil(numEntries / 5));
+    },
+
+    activate: func () {
+        print("activate");
+        me.loadPage(0);
+        me.timer = maketimer(1, me, func () {
+            print("Redraw " ~ me.page);
+            me.loadPage(me.page);
+            me.fullRedraw();
+        });
+        me.timer.start();
+    },
+
+    deactivate: func () {
+        print("deactivate");
+        if (me.timer != nil) {
+            me.timer.stop();
+            me.timer = nil;
+        }
+    },
+
+    getTitle: func () { return "FLT PLAN"; },
+
+    loadPageItems: func (p) {
+        var numWaypoints = me.fp.getPlanSize();
+        var firstWP = p * 5;
+        var transitionAlt = getprop("/controls/flight/transition-alt");
+        me.views = [];
+        me.controllers = {};
+        var y = 1;
+        for (var i = 0; i < 5; i += 1) {
+            var wpi = firstWP + i;
+            var wp = me.fp.getWP(wpi);
+            if (wp == nil) {
+                break;
+            }
+            else {
+                if (wpi == 0) {
+                    append(me.views, StaticView.new(1, y, "ORIGIN/ETD", mcdu_white));
+                    append(me.views, StaticView.new(0, y + 1, sprintf("%-6s", wp.wp_name),
+                        mcdu_yellow | mcdu_large));
+                }
+                else {
+                    append(me.views, StaticView.new(1, y, sprintf("%3d°", wp.leg_bearing), mcdu_green));
+                    var distFormat = (wp.leg_distance < 100) ? "%5.1fNM" : "%5.0fNM";
+                    append(me.views, StaticView.new(6, y, sprintf(distFormat, wp.leg_distance), mcdu_green));
+                    append(me.views, StaticView.new(0, y + 1, sprintf("%-6s", wp.wp_name),
+                        ((wpi == me.fp.current) ? mcdu_magenta : mcdu_green) | mcdu_large));
+                }
+
+                var formattedAltRestr = "-----";
+                if (wp.alt_cstr != nil and wp.alt_cstr > 0) {
+                    if (wp.alt_cstr > transitionAlt) {
+                        formattedAltRestr = sprintf("FL%03.0f", wp.alt_cstr / 100);
+                    }
+                    else {
+                        formattedAltRestr = sprintf("%5.0f", wp.alt_cstr);
+                    }
+                    if (wp.alt_cstr_type == "above") {
+                        formattedAltRestr ~= "A";
+                    }
+                    else if (wp.alt_cstr_type == "below") {
+                        formattedAltRestr ~= "B";
+                    }
+                }
+                var formattedSpeedRestr = "---";
+                if (wp.speed_cstr != nil and wp.speed_cstr > 0) {
+                    if (wp.speed_cstr_type == "mach") {
+                        formattedSpeedRestr = sprintf("%0.2fM", wp.speed_cstr);
+                    }
+                    else {
+                        formattedSpeedRestr = sprintf("%3.0f", wp.speed_cstr);
+                    }
+                    if (wp.speed_cstr_type == "above") {
+                        formattedSpeedRestr ~= "A";
+                    }
+                    else if (wp.speed_cstr_type == "below") {
+                        formattedSpeedRestr ~= "B";
+                    }
+                }
+
+                append(me.views,
+                    StaticView.new(
+                        13, y + 1,
+                        sprintf("%4s/%-6s", formattedSpeedRestr, formattedAltRestr),
+                        mcdu_cyan | mcdu_large));
+            }
+            y += 2;
+        }
+    },
+
+};
 var RouteModule = {
     new: func (mcdu, parentModule, fp = nil) {
         var m = BaseModule.new(mcdu, parentModule);
@@ -2065,6 +2199,7 @@ var MCDU = {
         # Nav
         "NAVIDENT": func (mcdu, parent) { return NavIdentModule.new(mcdu, parent); },
         "RTE": func (mcdu, parent) { return RouteModule.new(mcdu, parent); },
+        "FPL": func (mcdu, parent) { return FlightPlanModule.new(mcdu, parent); },
         "POSINIT": func (mcdu, parent) { return PosInitModule.new(mcdu, parent); },
     },
 
@@ -2093,7 +2228,7 @@ var MCDU = {
         if (typeof(module) == "scalar") {
             var factory = me.makeModule[module];
             if (factory == nil) {
-                me.activeModule = nil;
+                me.activeModule = PlaceholderModule.new(me, parent, module);
             }
             else {
                 me.activeModule = factory(me, parent);
@@ -2153,6 +2288,9 @@ var MCDU = {
         }
         else if (cmd == "RTE") {
             me.gotoModule("RTE");
+        }
+        else if (cmd == "FPL") {
+            me.gotoModule("FPL");
         }
         else if (cmd == "PERF") {
             me.gotoModule("PERFINDEX");
