@@ -2273,14 +2273,14 @@ var MCDU = {
             me.scratchpad = me.scratchpad ~ cmd;
             me.scratchpadElem.setText(me.scratchpad);
         }
-        else if (cmd == "DEL") {
+        else if (cmd == "CLR") {
             var l = size(me.scratchpad);
             if (l > 0) {
                 me.scratchpad = substr(me.scratchpad, 0, l - 1);
                 me.scratchpadElem.setText(me.scratchpad);
             }
         }
-        else if (cmd == "CLR") {
+        else if (cmd == "DEL") {
             me.popScratchpad();
         }
         else if (cmd == "RADIO") {
