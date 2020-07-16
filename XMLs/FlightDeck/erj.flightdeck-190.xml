@@ -486,7 +486,7 @@
         </offsets>
     </model>
 
-<!-- CDUs -->
+<!-- MCDUs -->
 
     <model>
         <path>Aircraft/E-jet-family/Models/Instruments/MCDU/mcdu-e-jets.xml</path>
