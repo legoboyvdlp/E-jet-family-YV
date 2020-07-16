@@ -194,6 +194,18 @@ var MCDU = {
         else if (cmd == "RADIO") {
             me.gotoModule("RADIO");
         }
+        else if (cmd == "DLK") {
+            me.gotoModule("DLK");
+        }
+        else if (cmd == "PROG") {
+            me.gotoModule("PROG");
+        }
+        else if (cmd == "MENU") {
+            me.gotoModule("MENU");
+        }
+        else if (cmd == "CB") {
+            me.gotoModule("CB");
+        }
         else if (cmd == "RTE") {
             me.gotoModule("RTE");
         }
