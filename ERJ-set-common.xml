@@ -171,10 +171,10 @@
             <internal archive="y">true</internal>
             <config>
                 <from-model type="bool">true</from-model>
-                <x-offset-m>0</x-offset-m>
-                <y-offset-m>1.125</y-offset-m>
-                <z-offset-m>-14.25</z-offset-m>
-                <pitch-offset-deg>-70</pitch-offset-deg>
+                <x-offset-m>-0.15</x-offset-m>
+                <y-offset-m>1.129</y-offset-m>
+                <pitch-offset-deg>-36</pitch-offset-deg>
+                <default-field-of-view-deg type="double">70.0</default-field-of-view-deg>
             </config>
         </view>
 
@@ -186,7 +186,6 @@
                 <from-model type="bool">true</from-model>
                 <x-offset-m>0</x-offset-m>
                 <y-offset-m>1.1625</y-offset-m>
-                <z-offset-m>-13.5</z-offset-m>
                 <pitch-offset-deg>45</pitch-offset-deg>
             </config>
         </view>

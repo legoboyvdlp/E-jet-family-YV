@@ -22,19 +22,26 @@
 			<model type="int">5</model>
 		</rating>
 
-
 		<view>
 			<config>
 				<z-offset-m archive="y">-14.57</z-offset-m>
 			</config>
 		</view>
-
+        <view n="199">
+            <config>
+                <z-offset-m archive="y">-15.0</z-offset-m>
+            </config>
+        </view>
+        <view n="198">
+            <config>
+                <z-offset-m archive="y">-14.57</z-offset-m>
+            </config>
+        </view>
 		<view n="103">
 			<config>
 				<z-offset-m archive="y">-14.57</z-offset-m>
 			</config>
 		</view>
-
 		<view n="104">
 			<name>Passenger View</name>
 		</view>
