@@ -117,7 +117,11 @@
             <property-rule n="101">
                 <path>Aircraft/E-jet-family/Systems/fms.xml</path>
             </property-rule>
-            <electrical><path></path></electrical><!--Disable XML electrical system-->
+
+            <!--Disable XML electrical system-->
+            <electrical>
+                <path></path>
+            </electrical>
         </systems>
 
         <chase-distance-m>-50</chase-distance-m>
@@ -395,33 +399,27 @@
                 <string alias="/sim/multiplay/callsign"/>
             </generic>
         </multiplay>
-        
-        
-        
+
+
+
     </sim>
 
-    
+
     <it-autoflight>
         <config>
             <roll>
-                <umin>-0.50</umin>
-                <umax>0.50</umax>
                 <kp-low>0.05</kp-low>
                 <kp-high>0.09</kp-high>
                 <ti>10.0</ti>
                 <td>0.00001</td>
             </roll>
             <pitch>
-                <umin>-0.50</umin>
-                <umax>0.50</umax>
-                <kp-low>-0.08</kp-low>
-                <kp-high>-0.08</kp-high>
-                <ti>10.0</ti>
-                <td>0.0001</td>
+                <kp-low>-0.12</kp-low>
+                <kp-high>-0.06</kp-high>
+                <ti>0.5</ti>
+                <td>0.001</td>
             </pitch>
             <cmd>
-                <hdg>1.0</hdg>
-                <vorloc>1.0</vorloc>
                 <roll>1.6</roll>
                 <alt-gain>-5</alt-gain>
             </cmd>
@@ -431,8 +429,9 @@
             </autoland>
             <rollout>
                 <roll-kp>0.05</roll-kp>
-                <pitch-defl>0.15</pitch-defl>
-                <yaw-kp>-0.1</yaw-kp>
+                <pitch-nose>0.1</pitch-nose>
+                <pitch-rate>-1.5</pitch-rate>
+                <yaw-kp>-0.02</yaw-kp>
             </rollout>
         </config>
         <settings>
@@ -449,8 +448,7 @@
             <autothrottle-min>0.0</autothrottle-min>
         </settings>
     </it-autoflight>
-        
-    
+
     <consumables>
         <fuel>
             <tank n="0">
@@ -660,7 +658,7 @@
         <flight>
             <ground-spoilers-armed type="bool">false</ground-spoilers-armed>
             <speedbrake-lever type="double">0</speedbrake-lever>
-            
+
             <!-- preconfigured for the following parameters:
                 TYPE: E190
                 FOB: 16607.4 lbs
@@ -736,7 +734,7 @@
             <landing-lights n="2" type="bool">false</landing-lights>
             <nav-lights-switch type="int">0</nav-lights-switch>
             <overhead-panel-norm type="double">0.8</overhead-panel-norm>
-        <main-panel-pedestal-norm type="double">0.8</main-panel-pedestal-norm>
+            <main-panel-pedestal-norm type="double">0.8</main-panel-pedestal-norm>
             <strobe type="bool">false</strobe>
         </lighting>
 
@@ -1078,7 +1076,7 @@
         <ELT>
             <file>Aircraft/E-jet-family/Nasal/ELTmessage.nas</file>
         </ELT>
-        
+
         <itaf>
             <file>Aircraft/E-jet-family/Nasal/it-autoflight.nas</file>
         </itaf>
