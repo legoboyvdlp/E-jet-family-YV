@@ -226,15 +226,23 @@ var PlaceholderModule = {
 };
 
 var FlightPlanModule = {
-    new: func (mcdu, parentModule, fp = nil) {
+    new: func (mcdu, parentModule) {
         var m = BaseModule.new(mcdu, parentModule);
         m.parents = prepended(FlightPlanModule, m.parents);
-        if (fp == nil) {
-            # m.fp = createFlightplan();
-            m.fp = flightplan();
+        if (fms.modifiedFlightplan != nil) {
+            m.fp = fms.modifiedFlightplan;
+            m.fpStatus = 'MOD';
         }
         else {
-            m.fp = fp;
+            m.fp = flightplan();
+            if (m.fp == nil) {
+                m.fpStatus = '';
+                fms.modifiedFlightplan = createFlightplan();
+                m.fp = fms.modifiedFlightplan;
+            }
+            else {
+                m.fpStatus = 'ACT';
+            }
         }
         m.timer = nil;
         return m;
@@ -261,7 +269,7 @@ var FlightPlanModule = {
         }
     },
 
-    getTitle: func () { return "FLT PLAN"; },
+    getTitle: func () { return me.fpStatus ~ " FLT PLAN"; },
 
     loadPageItems: func (p) {
         var numWaypoints = me.fp.getPlanSize();
@@ -273,6 +281,8 @@ var FlightPlanModule = {
         for (var i = 0; i < 5; i += 1) {
             var wpi = firstWP + i;
             var wp = me.fp.getWP(wpi);
+            var lsk = "L" ~ (i + 1);
+            var rsk = "R" ~ (i + 1);
             if (wp == nil) {
                 break;
             }

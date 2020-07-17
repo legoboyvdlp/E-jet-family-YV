@@ -34,7 +34,6 @@ var Route =  {
             var wp = fp.getWP(i);
             if (wp.wp_parent == nil and wp.wp_type != 'basic' and wp.wp_type != "runway") {
                 # not owned by a procedure, let's append it!
-                printf("%6s %s", wp.id, wp.wp_type);
                 append(me.enroute, ["DCT", wp]);
             }
         }
@@ -80,14 +79,12 @@ var Route =  {
             else {
                 legRouteName = "";
                 foreach (var part; arrivalRoute) {
-                    printf("Append %s", part);
                     if (legRouteName == "") {
                         legRouteName = part;
                     }
                     else {
                         legRouteName = legRouteName ~ "." ~ part;
                     }
-                    printf("Route name is now: %s", legRouteName);
                 }
             }
             if (firstArrivalWP != nil) {

@@ -10,6 +10,13 @@ var slow_update = func () {
 var activeRoute = nil;
 var modifiedRoute = nil;
 
+var modifiedFlightplan = nil;
+
+setlistener("autopilot/route-manager/signals/edited", func {
+    modifiedRoute = nil;
+    activeRoute = Route.new(flightplan());
+});
+
 setlistener("sim/signals/fdm-initialized", func {
 	var tfast = maketimer(0.1, func () { fast_update(); });
     tfast.simulatedTime = 1;
