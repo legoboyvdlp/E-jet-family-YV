@@ -613,13 +613,13 @@ var LandingPerfModule = {
         else if (n == 1) {
             me.views = [
                 StaticView.new(1, 1, "VREF", mcdu_white),
-                FormatView.new(0, 2, mcdu_large | mcdu_white, "VREF", 3),
+                FormatView.new(0, 2, mcdu_large | mcdu_green, "VREF", 3),
                 StaticView.new(1, 3, "VAP", mcdu_white),
-                FormatView.new(0, 4, mcdu_large | mcdu_white, "VAP", 3),
+                FormatView.new(0, 4, mcdu_large | mcdu_green, "VAP", 3),
                 StaticView.new(1, 5, "VAC", mcdu_white),
-                FormatView.new(0, 6, mcdu_large | mcdu_white, "VAC", 3),
+                FormatView.new(0, 6, mcdu_large | mcdu_green, "VAC", 3),
                 StaticView.new(1, 7, "VFS", mcdu_white),
-                FormatView.new(0, 8, mcdu_large | mcdu_white, "VFS", 3),
+                FormatView.new(0, 8, mcdu_large | mcdu_green, "VFS", 3),
             ];
             me.controllers = {
                 "L1": ValueController.new("VREF"),

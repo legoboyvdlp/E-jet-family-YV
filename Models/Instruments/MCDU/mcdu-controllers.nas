@@ -73,6 +73,10 @@ var ModelController = {
             # TODO: issue error message on scratchpad
         }
     },
+
+    select: func (owner, boxed) {
+        owner.mcdu.setScratchpad(me.model.get());
+    },
 };
 
 var MultiModelController = {
@@ -113,6 +117,18 @@ var MultiModelController = {
             # TODO: issue error message on scratchpad
         }
     },
+
+    select: func (owner, boxed) {
+        var scratchval = '';
+        forindex (var i; me.models) {
+            if (i > 0) {
+                scratchval ~= "/";
+            }
+            scratchval ~= me.models[i].get();
+        }
+        owner.mcdu.setScratchpad(scratchval);
+    },
+
 };
 
 var SubmodeController = {
@@ -323,6 +339,9 @@ var ValueController = {
         else {
             if (me.boxable) {
                 owner.box(me.model.getKey());
+            }
+            else {
+                owner.mcdu.setScratchpad(me.model.get());
             }
         }
     },

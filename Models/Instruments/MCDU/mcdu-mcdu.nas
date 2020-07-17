@@ -167,7 +167,7 @@ var MCDU = {
     },
 
     setScratchpad: func (str) {
-        me.scratchpad = str;
+        me.scratchpad = str ~ '';
         me.scratchpadElem.setText(me.scratchpad);
     },
 
