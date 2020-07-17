@@ -333,33 +333,50 @@ var FlightPlanModule = {
 
 };
 var RouteModule = {
-    new: func (mcdu, parentModule, fp = nil) {
+    new: func (mcdu, parentModule) {
         var m = BaseModule.new(mcdu, parentModule);
         m.parents = prepended(RouteModule, m.parents);
-        if (fp == nil) {
-            # m.fp = createFlightplan();
-            m.fp = flightplan();
+        m.routeState = 'NEW';
+        if (fms.modifiedRoute == nil) {
+            if (fms.activeRoute == nil) {
+                fms.modifiedRoute = fms.Route.new(flightplan());
+                m.routeState = 'NEW';
+                m.route = fms.modifiedRoute;
+            }
+            else {
+                m.route = fms.activeRoute;
+                m.routeState = 'ACTIVE';
+            }
         }
         else {
-            m.fp = fp;
-        }
-        if (fms.modifiedRoute == nil) {
-            fms.modifiedRoute = fms.Route.new(m.fp);
+            m.route = fms.modifiedRoute;
+            if (fms.activeRoute == nil) {
+                m.routeState = 'NEW';
+            }
+            else {
+                m.routeState = 'MODIFIED';
+            }
         }
         m.models = {
-            "DEPARTURE-AIRPORT": makeAirportModel(m, "DEPARTURE-AIRPORT", m.fp, "departure"),
-            "DESTINATION-AIRPORT": makeAirportModel(m, "DESTINATION-AIRPORT", m.fp, "destination"),
+            "DEPARTURE-AIRPORT": makeAirportModel(m, "DEPARTURE-AIRPORT", m.route, "departure"),
+            "DESTINATION-AIRPORT": makeAirportModel(m, "DESTINATION-AIRPORT", m.route, "destination"),
         };
         return m;
     },
 
     getNumPages: func () {
-        var numEntries = me.fp.getPlanSize() - 1;
-        if (me.fp.destination != nil) { numEntries += 2; }
+        var numEntries = size(me.route.getLegs());
         return 1 + math.ceil(numEntries / 5);
     },
 
-    getTitle: func () { return "RTE"; },
+    getTitle: func () {
+        if (me.routeState == 'NEW') {
+            return "RTE";
+        }
+        else {
+            return me.routeState ~ ' RTE';
+        }
+    },
 
     loadPageItems: func (p) {
         if (p == 0) {
@@ -387,15 +404,19 @@ var RouteModule = {
             };
         }
         else {
-            var numWaypoints = me.fp.getPlanSize();
-            var firstWP = (p - 1) * 5 + 1;
+            var waypoints = me.route.getLegs();
+            var numWaypoints = size(waypoints);
+            var firstWP = (p - 1) * 5;
             me.views = [];
             me.controllers = {};
             append(me.views, StaticView.new(1, 1, "VIA", mcdu_white));
             append(me.views, StaticView.new(21, 1, "TO", mcdu_white));
             var y = 2;
             for (var i = 0; i < 5; i += 1) {
-                var wp = me.fp.getWP(firstWP + i);
+                var wp = nil;
+                if (firstWP + i < size(waypoints)) {
+                    wp = waypoints[firstWP + i];
+                }
                 if (wp == nil) {
                     append(me.views, StaticView.new(0, y, "-----", mcdu_green | mcdu_large));
                     if (y + 2 <= 10) {
@@ -405,8 +426,8 @@ var RouteModule = {
                     break;
                 }
                 else {
-                    append(me.views, StaticView.new(0, y, "DIRECT", mcdu_green | mcdu_large));
-                    append(me.views, StaticView.new(18, y, sprintf("%6s", wp.wp_name), mcdu_green | mcdu_large));
+                    append(me.views, StaticView.new(0, y, (wp[0] == "DCT") ? "DIRECT" : wp[0], mcdu_green | mcdu_large));
+                    append(me.views, StaticView.new(12, y, sprintf("%12s", wp[1].id), mcdu_green | mcdu_large));
                 }
                 y += 2;
             }

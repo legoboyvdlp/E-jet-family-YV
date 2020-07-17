@@ -32,8 +32,9 @@ var Route =  {
         # start at 1, because we want to skip the departure
         for (var i = 1; i < fp.getPlanSize(); i += 1) {
             var wp = fp.getWP(i);
-            if (wp.wp_parent == nil and wp.wp_type != "runway") {
+            if (wp.wp_parent == nil and wp.wp_type != 'basic' and wp.wp_type != "runway") {
                 # not owned by a procedure, let's append it!
+                printf("%6s %s", wp.id, wp.wp_type);
                 append(me.enroute, ["DCT", wp]);
             }
         }
