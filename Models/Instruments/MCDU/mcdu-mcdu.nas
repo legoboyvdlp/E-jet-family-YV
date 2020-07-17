@@ -115,7 +115,7 @@ var MCDU = {
         if (me.activeModule != nil) {
             append(me.moduleStack, me.activeModule);
         }
-        me.activateModule(moduleName);
+        me.activateModule(moduleName, me.activeModule);
     },
 
     gotoModule: func (moduleName) {
@@ -128,11 +128,10 @@ var MCDU = {
         me.activateModule(target);
     },
 
-    activateModule: func (module) {
+    activateModule: func (module, parent = nil) {
         if (me.activeModule != nil) {
             me.activeModule.deactivate();
         }
-        var parent = me.activeModule;
         if (typeof(module) == "scalar") {
             var factory = me.makeModule[module];
             if (factory == nil) {
@@ -196,6 +195,9 @@ var MCDU = {
         }
         else if (cmd == "DLK") {
             me.gotoModule("DLK");
+        }
+        else if (cmd == "TRS") {
+            me.gotoModule("TRS");
         }
         else if (cmd == "PROG") {
             me.gotoModule("PROG");
