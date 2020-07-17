@@ -233,9 +233,10 @@ var PlaceholderModule = {
 };
 
 var FlightPlanModule = {
-    new: func (mcdu, parentModule) {
+    new: func (mcdu, parentModule, specialMode = nil) {
         var m = BaseModule.new(mcdu, parentModule);
         m.parents = prepended(FlightPlanModule, m.parents);
+        m.specialMode = specialMode;
         if (fms.modifiedFlightplan != nil) {
             m.fp = fms.modifiedFlightplan;
             m.fpStatus = 'MOD';
@@ -361,8 +362,32 @@ var FlightPlanModule = {
                         13, y + 1,
                         sprintf("%4s/%-6s", formattedSpeedRestr, formattedAltRestr),
                         mcdu_cyan | mcdu_large));
+
+                if (me.specialMode == "FLYOVER") {
+                    var f = func (wp) {
+                                me.controllers[lsk] = FuncController.new(func(owner) {
+                                    print("Activate FLYOVER on " ~ wp.id);
+                                    owner.specialMode = nil;
+                                    if (wp.fly_type == 'flyOver') {
+                                        wp.fly_type = 'flyBy';
+                                    }
+                                    else {
+                                        wp.fly_type = 'flyOver';
+                                    }
+                                    owner.fullRedraw();
+                                });
+                            };
+                    f(wp);
+                }
+                else if (me.specialMode == "HOLD") {
+                    # TODO
+                }
             }
             y += 2;
+        }
+        if (me.specialMode == "FLYOVER") {
+            append(me.views,
+                StaticView.new(0, 11, "*FLYOVER*", mcdu_green | mcdu_large));
         }
         append(me.views,
             StaticView.new(14, 12, "PERF INIT" ~ right_triangle, mcdu_white | mcdu_large));

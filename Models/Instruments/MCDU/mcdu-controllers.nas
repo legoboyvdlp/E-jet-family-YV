@@ -131,6 +131,19 @@ var MultiModelController = {
 
 };
 
+var FuncController = {
+    new: func (fn) {
+        var m = BaseController.new();
+        m.parents = prepended(FuncController, m.parents);
+        m.fn = fn;
+        return m;
+    },
+
+    select: func (owner, boxed) {
+        me.fn(owner);
+    },
+};
+
 var SubmodeController = {
     new: func (submode, pushStack = 1) {
         var m = BaseController.new();

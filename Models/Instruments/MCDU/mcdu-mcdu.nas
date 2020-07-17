@@ -70,7 +70,7 @@ var MCDU = {
                           # PAGE 2
                         , [ "POSINIT", "POS INIT" ]
                         , [ nil, "DATA LOAD" ]
-                        , [ nil, "PATTERNS" ]
+                        , [ "PATTERNS", "PATTERNS" ]
                         , nil
                         , nil
                         , nil
@@ -81,6 +81,23 @@ var MCDU = {
                         , nil
                         , nil
                         , nil
+                        ]); },
+        "PATTERNS": func(mcdu, parent) { return IndexModule.new(mcdu, parent,
+                        "PATTERNS",
+                        [ # PAGE 1
+                          [ "PATTERN-HOLD", "HOLD" ],
+                          [ "PATTERN-FLYOVER", "FLYOVER" ],
+                          nil,
+                          nil,
+                          nil,
+                          [ "ret", "REVIEW" ],
+
+                          [ "PATTERN-PTURN", "PCDR TURN" ],
+                          nil,
+                          nil,
+                          nil,
+                          nil,
+                          nil,
                         ]); },
         "PERFINDEX": func(mcdu, parent) { return IndexModule.new(mcdu, parent,
                         "PERF INDEX",
@@ -111,6 +128,8 @@ var MCDU = {
         "RTE": func (mcdu, parent) { return RouteModule.new(mcdu, parent); },
         "FPL": func (mcdu, parent) { return FlightPlanModule.new(mcdu, parent); },
         "POSINIT": func (mcdu, parent) { return PosInitModule.new(mcdu, parent); },
+        "PATTERN-FLYOVER": func (mcdu, parent) { return FlightPlanModule.new(mcdu, parent, "FLYOVER"); },
+        "PATTERN-HOLD": func (mcdu, parent) { return FlightPlanModule.new(mcdu, parent, "HOLD"); },
     },
 
     pushModule: func (moduleName) {
@@ -142,6 +161,9 @@ var MCDU = {
             else {
                 me.activeModule = factory(me, parent);
             }
+        }
+        else if (typeof(module) == "func") {
+            me.activeModule = module();
         }
         else {
             me.activeModule = module;
