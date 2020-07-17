@@ -131,6 +131,13 @@ var BaseModule = {
         me.redraw();
     },
 
+    gotoPage: func (p) {
+        me.unloadPage();
+        me.page = math.min(me.getNumPages() - 1, math.max(0, p));
+        me.loadPage(me.page);
+        me.fullRedraw();
+    },
+
     nextPage: func () {
         if (me.page < me.getNumPages() - 1) {
             me.unloadPage();
@@ -254,7 +261,13 @@ var FlightPlanModule = {
     },
 
     activate: func () {
-        me.loadPage(0);
+        if (me.fp == nil) {
+            me.page = 0;
+        }
+        else {
+            me.page = math.floor((me.fp.current - 1) / 5);
+        }
+        me.loadPage(me.page);
         me.timer = maketimer(1, me, func () {
             me.loadPage(me.page);
             me.fullRedraw();
@@ -340,8 +353,8 @@ var FlightPlanModule = {
             y += 2;
         }
     },
-
 };
+
 var RouteModule = {
     new: func (mcdu, parentModule) {
         var m = BaseModule.new(mcdu, parentModule);
