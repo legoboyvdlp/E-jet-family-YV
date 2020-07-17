@@ -334,6 +334,14 @@
                             <dialog-name>performance</dialog-name>
                         </binding>
                     </item>
+                    <item>
+                        <name>mcdu1</name>
+                        <label>MCDU 1</label>
+                        <binding>
+                            <command>dialog-show</command>
+                            <dialog-name>mcdu1</dialog-name>
+                        </binding>
+                    </item>
                 </menu>
             </default>
         </menubar>
