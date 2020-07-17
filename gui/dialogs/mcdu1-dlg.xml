@@ -18,6 +18,7 @@
 			<label>Left MCDU</label>
 		</text>
 		<button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
 			<halign>right</halign>
 			<pref-width>20</pref-width>
 			<pref-height>20</pref-height>
@@ -48,6 +49,7 @@
 			</text>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -59,6 +61,8 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -70,6 +74,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -81,6 +86,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -92,6 +98,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -103,6 +110,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -156,6 +164,7 @@
 			</text>
 
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -167,6 +176,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -178,6 +188,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -189,6 +200,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -200,6 +212,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -211,6 +224,7 @@
 			</button>
 			
 			<button>
+                <color><red>0</red><green>0</green><blue>0</blue></color>
 				<legend>-</legend>
 				<pref-height>21</pref-height>
 				<pref-width>30</pref-width>
@@ -234,6 +248,7 @@
 		<layout>hbox</layout>
 
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>PERF</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -244,6 +259,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>NAV</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -254,6 +270,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>PREV</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -264,6 +281,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>FPL</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -274,6 +292,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>PROG</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -284,6 +303,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>RTE</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -294,6 +314,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>CB</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -311,6 +332,7 @@
 		<layout>hbox</layout>
 		
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>MENU</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -321,6 +343,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>DLK</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -331,6 +354,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>NEXT</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -341,6 +365,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend></legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -351,6 +376,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>TRS</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -361,6 +387,7 @@
             </binding>
         </button>
         <button>
+            <color><red>0</red><green>0</green><blue>0</blue></color>
             <legend>RADIO</legend>
             <pref-height>25</pref-height>
             <pref-width>40</pref-width>
@@ -390,6 +417,7 @@
 				<layout>table</layout>
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>0</row>
                     <col>0</col>
                     <legend>A</legend>
@@ -402,6 +430,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>0</row>
                     <col>1</col>
                     <legend>B</legend>
@@ -414,6 +443,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>0</row>
                     <col>2</col>
                     <legend>C</legend>
@@ -426,6 +456,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>0</row>
                     <col>3</col>
                     <legend>D</legend>
@@ -438,6 +469,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>0</row>
                     <col>4</col>
                     <legend>E</legend>
@@ -450,6 +482,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>0</row>
                     <col>5</col>
                     <legend>F</legend>
@@ -463,6 +496,7 @@
                 </button>
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>0</col>
                     <legend>G</legend>
@@ -475,6 +509,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>1</col>
                     <legend>H</legend>
@@ -487,6 +522,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>2</col>
                     <legend>I</legend>
@@ -499,6 +535,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>3</col>
                     <legend>J</legend>
@@ -511,6 +548,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>4</col>
                     <legend>K</legend>
@@ -523,6 +561,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>5</col>
                     <legend>L</legend>
@@ -536,6 +575,7 @@
                 </button>
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>0</col>
                     <legend>M</legend>
@@ -548,6 +588,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>1</col>
                     <legend>N</legend>
@@ -560,6 +601,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>2</col>
                     <legend>O</legend>
@@ -572,6 +614,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>3</col>
                     <legend>P</legend>
@@ -584,6 +627,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>4</col>
                     <legend>Q</legend>
@@ -596,6 +640,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>5</col>
                     <legend>R</legend>
@@ -609,6 +654,7 @@
                 </button>
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>1</col>
                     <legend>S</legend>
@@ -621,6 +667,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>2</col>
                     <legend>T</legend>
@@ -633,6 +680,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>3</col>
                     <legend>U</legend>
@@ -645,6 +693,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>4</col>
                     <legend>V</legend>
@@ -657,6 +706,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>5</col>
                     <legend>W</legend>
@@ -671,6 +721,7 @@
 
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>1</col>
                     <legend>X</legend>
@@ -683,6 +734,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>2</col>
                     <legend>Y</legend>
@@ -695,6 +747,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>3</col>
                     <legend>Z</legend>
@@ -707,6 +760,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>4</col>
                     <legend>DEL</legend>
@@ -719,6 +773,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>5</col>
                     <legend>CLR</legend>
@@ -732,6 +787,7 @@
                 </button>
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>6</col>
                     <legend>1</legend>
@@ -744,6 +800,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>7</col>
                     <legend>2</legend>
@@ -756,6 +813,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>8</col>
                     <legend>3</legend>
@@ -768,6 +826,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>1</row>
                     <col>9</col>
                     <legend>+/-</legend>
@@ -782,6 +841,7 @@
 
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>6</col>
                     <legend>4</legend>
@@ -794,6 +854,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>7</col>
                     <legend>5</legend>
@@ -806,6 +867,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>8</col>
                     <legend>6</legend>
@@ -818,6 +880,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>2</row>
                     <col>9</col>
                     <legend>/</legend>
@@ -831,6 +894,7 @@
                 </button>
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>6</col>
                     <legend>7</legend>
@@ -843,6 +907,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>7</col>
                     <legend>8</legend>
@@ -855,6 +920,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>3</row>
                     <col>8</col>
                     <legend>9</legend>
@@ -868,6 +934,7 @@
                 </button>
 
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>6</col>
                     <legend>SP</legend>
@@ -880,6 +947,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>7</col>
                     <legend>0</legend>
@@ -892,6 +960,7 @@
                     </binding>
                 </button>
                 <button>
+                    <color><red>0</red><green>0</green><blue>0</blue></color>
                     <row>4</row>
                     <col>8</col>
                     <legend>.</legend>
