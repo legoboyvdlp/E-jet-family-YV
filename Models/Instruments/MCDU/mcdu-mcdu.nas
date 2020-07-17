@@ -163,7 +163,7 @@ var MCDU = {
             }
         }
         else if (typeof(module) == "func") {
-            me.activeModule = module();
+            me.activeModule = module(me, parent);
         }
         else {
             me.activeModule = module;
@@ -189,6 +189,11 @@ var MCDU = {
     },
 
     setScratchpad: func (str) {
+        if (typeof(str) != 'scalar') {
+            print("Warning: trying to fill scratchpad with non-scalar");
+            debug.dump(str);
+            str = '';
+        }
         me.scratchpad = str ~ '';
         me.scratchpadElem.setText(me.scratchpad);
     },

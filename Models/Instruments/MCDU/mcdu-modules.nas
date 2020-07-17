@@ -366,7 +366,7 @@ var FlightPlanModule = {
 
                 if (me.specialMode == "FLYOVER") {
                     var f = func (wp) {
-                                me.controllers[lsk] = FuncController.new(func(owner) {
+                                me.controllers[lsk] = FuncController.new(func(owner, val) {
                                     print("Activate FLYOVER on " ~ wp.id);
                                     owner.specialMode = nil;
                                     if (wp.fly_type == 'flyOver') {
@@ -384,7 +384,14 @@ var FlightPlanModule = {
                     # TODO
                 }
                 else if (wpi == firstEntry) {
-                    # TODO: trigger DIRECT menu
+                    var this = me;
+                    me.controllers[lsk] = FuncController.new(func(owner, val) {
+                        printf("RQ DIRECT %s", val);
+                        var directToModule = func (mcdu, parent) {
+                            return DirectToModule.new(mcdu, parent, this.fp, val);
+                        };
+                        owner.mcdu.pushModule(directToModule);
+                    });
                 }
                 else {
                     me.controllers[lsk] = PopController.new(wp.id);
@@ -399,6 +406,64 @@ var FlightPlanModule = {
         append(me.views,
             StaticView.new(14, 12, "PERF INIT" ~ right_triangle, mcdu_white | mcdu_large));
         me.controllers["R6"] = SubmodeController.new("PERFINIT");
+    },
+};
+
+var DirectToModule = {
+    new: func (mcdu, parentModule, fp, directToID) {
+        var m = BaseModule.new(mcdu, parentModule);
+        m.parents = prepended(DirectToModule, m.parents);
+        m.fp = fp;
+        m.directToID = directToID;
+        var wp = nil;
+        for (var i = fp.current; i < fp.getPlanSize(); i += 1) {
+            wp = fp.getWP(i);
+            if (wp.id == directToID) {
+                m.directToWP = wp;
+                m.directToIndex = i;
+                break;
+            }
+        }
+        return m;
+    },
+
+    getNumPages: func () { return 1; },
+    getTitle: func () { return "DIRECT-TO"; },
+
+    loadPageItems: func (p) {
+        me.views = [
+            StaticView.new(0, 2, left_triangle ~ "DIRECT", mcdu_large | mcdu_white),
+            StaticView.new(0, 4, left_triangle ~ "ACTIVE", mcdu_large | mcdu_white),
+            StaticView.new(0, 6, left_triangle ~ "MISSED APPROACH", mcdu_large | mcdu_white),
+            StaticView.new(0, 8, left_triangle ~ "ALTERNATE", mcdu_large | mcdu_white),
+        ];
+
+        me.controllers = {
+            "L1": FuncController.new(func (owner, val) { owner.insertDirect(); owner.mcdu.popModule(); }),
+            "L2": FuncController.new(func (owner, val) { owner.insertActive(); owner.mcdu.popModule(); }),
+            "L3": FuncController.new(func (owner, val) { owner.insertActive(); owner.mcdu.popModule(); }),
+            # TODO: Alternate flight plan
+            # "L4": FuncController.new(func (owner, val) { owner.insertAlternate(); owner.mcdu.popModule(); }),
+        };
+    },
+
+    insertActive: func () {
+        var directWP = createWP(geo.aircraft_position(), "DIRECT");
+        me.fp.insertWP(directWP, me.directToIndex);
+        me.fp.current = me.directToIndex + 1;
+    },
+
+    insertDirect: func () {
+        var candidates = findNavaidsByID(me.directToID);
+        debug.dump(me.directToID, candidates);
+        if (size(candidates) > 0) {
+            var directWP = createWP(geo.aircraft_position(), "DIRECT");
+            var newWP = candidates[0];
+            me.fp.insertWP(directWP, me.directToIndex);
+            me.fp.insertWP(newWP, me.directToIndex + 1);
+            me.fp.insertWP(createDiscontinuity(), me.directToIndex + 2);
+            me.fp.current = me.directToIndex + 1;
+        }
     },
 };
 

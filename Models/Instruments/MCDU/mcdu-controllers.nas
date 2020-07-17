@@ -92,7 +92,7 @@ var PopController = {
     },
 
     send: func (owner, val) {
-        owner.mcdu.setScratchpad(nil);
+        owner.mcdu.setScratchpad('');
     },
 };
 
@@ -156,8 +156,12 @@ var FuncController = {
         return m;
     },
 
+    send: func (owner, val) {
+        me.fn(owner, val);
+    },
+
     select: func (owner, boxed) {
-        me.fn(owner);
+        me.fn(owner, nil);
     },
 };
 
