@@ -343,6 +343,9 @@ var RouteModule = {
         else {
             m.fp = fp;
         }
+        if (fms.modifiedRoute == nil) {
+            fms.modifiedRoute = fms.Route.new(m.fp);
+        }
         m.models = {
             "DEPARTURE-AIRPORT": makeAirportModel(m, "DEPARTURE-AIRPORT", m.fp, "departure"),
             "DESTINATION-AIRPORT": makeAirportModel(m, "DESTINATION-AIRPORT", m.fp, "destination"),

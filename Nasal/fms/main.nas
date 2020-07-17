@@ -7,6 +7,9 @@ var slow_update = func () {
     update_radios();
 };
 
+var activeRoute = nil;
+var modifiedRoute = nil;
+
 setlistener("sim/signals/fdm-initialized", func {
 	var tfast = maketimer(0.1, func () { fast_update(); });
     tfast.simulatedTime = 1;
