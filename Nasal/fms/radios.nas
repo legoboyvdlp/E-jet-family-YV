@@ -27,8 +27,22 @@ var update_xpdr = func () {
     }
     var xpdr = xpdrmodes[mode];
     var tcas = tcasmodes[mode];
-    setprop("/instrumentation/transponder/knob-mode", xpdr);
+    setprop("/instrumentation/transponder/inputs/knob-mode", xpdr);
     setprop("/instrumentation/tcas/inputs/mode", tcas);
+};
+
+var reverse_update_xpdr = func () {
+    var knobmode = getprop("/instrumentation/transponder/inputs/knob-mode");
+    if (knobmode == 1) {
+        if (getprop("/fms/radio/tcas-xpdr/enabled")) {
+            setprop("/fms/radio/tcas-xpdr/enabled", 0);
+        }
+    }
+    else {
+        if (getprop("/fms/radio/tcas-xpdr/enabled") == 0) {
+            setprop("/fms/radio/tcas-xpdr/enabled", 1);
+        }
+    }
 };
 
 var checkDmeHold = func (n) {
@@ -67,7 +81,8 @@ setlistener("sim/signals/fdm-initialized", func {
     update_xpdr();
 });
 
-setlistener("/fms/radio/tcas-xpdr/stby", func { update_xpdr(); });
+setlistener("/fms/radio/tcas-xpdr/enabled", func { update_xpdr(); });
 setlistener("/fms/radio/tcas-xpdr/mode", func { update_xpdr(); });
+setlistener("/instrumentation/transponder/inputs/knob-mode", func { reverse_update_xpdr(); });
 setlistener("/instrumentation/dme[0]/hold", func { updateDmeHold(0); });
 setlistener("/instrumentation/dme[1]/hold", func { updateDmeHold(1); });
