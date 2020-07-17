@@ -999,4 +999,21 @@ var ComRadioDetailsModule = {
     },
 };
 
+var TestModule = {
+    new: func (mcdu, parentModule) {
+        var m = BaseModule.new(mcdu, parentModule);
+        m.parents = prepended(TestModule, m.parents);
+        return m;
+    },
 
+    loadPageItems: func (n) {
+        me.views = [];
+        for (var c = 0; c < 7; c += 1) {
+            append(me.views, StaticView.new(0, c * 2, sprintf("Color #%i", c), c));
+            append(me.views, StaticView.new(8, c * 2, "REGULAR", c));
+            append(me.views, StaticView.new(0, c * 2 + 1, "LARGE", mcdu_large | c));
+            append(me.views, StaticView.new(8, c * 2 + 1, "REVERSE", mcdu_reverse | c));
+            append(me.views, StaticView.new(16, c * 2 + 1, "BOTH", mcdu_large | mcdu_reverse | c));
+        }
+    },
+};

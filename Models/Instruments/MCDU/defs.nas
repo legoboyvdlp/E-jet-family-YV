@@ -71,6 +71,8 @@ var mcdu_magenta = 6;
 
 var mcdu_large = 0x10;
 
+var mcdu_reverse = 0x20;
+
 var cell_w = 18;
 var cell_h = 27;
 var cells_x = 24;

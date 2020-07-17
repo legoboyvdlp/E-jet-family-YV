@@ -1055,6 +1055,20 @@
 </animation>
 
 <animation>
+    <type>pick</type>
+    <object-name>Btn.unused001</object-name>
+    <action>
+        <button>0</button>
+        <repeatable>false</repeatable>
+        <binding>
+            <command>property-assign</command>
+            <property alias="../../../../params/command-target" />
+            <value>EASTEREGG</value>
+        </binding>
+    </action>
+</animation>
+
+<animation>
     <type>knob</type>
     <object-name>Value.Knob</object-name>
     <increase>

@@ -11,7 +11,7 @@ var MCDU = {
             scratchpadElem: nil,
             dividers: [],
             screenbuf: [],
-            screenbufElems: [],
+            screenbufElems: {fg: [], bg: []},
             activeModule: nil,
             moduleStack: [],
             powered: 0,
@@ -39,6 +39,8 @@ var MCDU = {
     },
 
     makeModule: {
+        "TEST": func (mcdu, parent) { return TestModule.new(mcdu, parent); },
+
         # Radio modules
         "RADIO": func(mcdu, parent) { return RadioModule.new(mcdu, parent); },
         "NAV1": func (mcdu, parent) { return NavRadioDetailsModule.new(mcdu, parent, 1); },
@@ -230,6 +232,9 @@ var MCDU = {
                 me.activeModule.prevPage();
             }
         }
+        else if (cmd == "EASTEREGG") {
+            me.gotoModule("TEST");
+        }
         else {
             if (me.activeModule != nil) {
                 me.activeModule.handleCommand(cmd);
@@ -252,15 +257,28 @@ var MCDU = {
         var i = 0;
         for (y = 0; y < cells_y; y += 1) {
             for (x = 0; x < cells_x; x += 1) {
-                var elem = me.g.createChild("text", "screenbuf_" ~ i);
-                elem.setText("X");
-                elem.setColor(1,1,1);
-                elem.setFontSize(font_size_large);
-                elem.setFont("LiberationFonts/LiberationMono-Regular.ttf");
-                elem.setTranslation(x * cell_w + margin_left + cell_w * 0.5, y * cell_h + margin_top + cell_h);
-                elem.setAlignment('center-baseline');
+                var bgElem = me.g.createChild("path", "screenbuf_bg_" ~ i);
+
+                bgElem.rect(
+                    x * cell_w + margin_left + 1,
+                    y * cell_h + margin_top + 3,
+                    cell_w,
+                    cell_h);
+                bgElem.setColorFill(0, 0, 0);
+                append(me.screenbufElems.bg, bgElem);
+
+                var fgElem = me.g.createChild("text", "screenbuf_fg_" ~ i);
+
+                fgElem.setText("X");
+                fgElem.setColor(1,1,1);
+                fgElem.setFontSize(font_size_large);
+                fgElem.setFont("LiberationFonts/LiberationMono-Regular.ttf");
+                fgElem.setTranslation(x * cell_w + margin_left + cell_w * 0.5, y * cell_h + margin_top + cell_h);
+                fgElem.setAlignment('center-baseline');
+                append(me.screenbufElems.fg, fgElem);
+
                 append(me.screenbuf, [" ", 0]);
-                append(me.screenbufElems, elem);
+
                 i += 1;
             }
         }
@@ -374,18 +392,29 @@ var MCDU = {
     },
 
     repaintCell: func (i) {
-        var elem = me.screenbufElems[i];
+        var fgElem = me.screenbufElems.fg[i];
+        var bgElem = me.screenbufElems.bg[i];
         var flags = me.screenbuf[i][1];
         var colorIndex = flags & 0x07;
         var largeSize = flags & mcdu_large;
+        var inverted = flags & mcdu_reverse;
         var color = mcdu_colors[colorIndex];
-        elem.setText(me.screenbuf[i][0]);
-        elem.setColor(color[0], color[1], color[2]);
-        if (largeSize) {
-            elem.setFontSize(font_size_large);
+
+        fgElem.setText(me.screenbuf[i][0]);
+        if (inverted) {
+            fgElem.setColor(0, 0, 0);
+            bgElem.setColorFill(color[0], color[1], color[2]);
         }
         else {
-            elem.setFontSize(font_size_small);
+            fgElem.setColor(color[0], color[1], color[2]);
+            bgElem.setColorFill(0, 0, 0);
+        }
+
+        if (largeSize) {
+            fgElem.setFontSize(font_size_large);
+        }
+        else {
+            fgElem.setFontSize(font_size_small);
         }
     },
 
