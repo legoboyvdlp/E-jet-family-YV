@@ -311,6 +311,18 @@ var FlightPlanModule = {
                     append(me.views, StaticView.new(6, y, sprintf(distFormat, wp.leg_distance), mcdu_green));
                     append(me.views, StaticView.new(0, y + 1, sprintf("%-6s", wp.wp_name),
                         ((wpi == me.fp.current) ? mcdu_magenta : mcdu_green) | mcdu_large));
+                    if (wp.fly_type == 'flyOver') {
+                        append(me.views,
+                            StaticView.new(
+                                math.max(6, size(wp.wp_name)), y + 1,
+                                "F", mcdu_green | mcdu_large | mcdu_reverse));
+                    }
+                    else if (wp.fly_type == 'hold') {
+                        append(me.views,
+                            StaticView.new(
+                                math.max(6, size(wp.wp_name)), y + 1,
+                                "H", mcdu_green | mcdu_large | mcdu_reverse));
+                    }
                 }
 
                 var formattedAltRestr = "-----";
@@ -352,6 +364,9 @@ var FlightPlanModule = {
             }
             y += 2;
         }
+        append(me.views,
+            StaticView.new(14, 12, "PERF INIT" ~ right_triangle, mcdu_white | mcdu_large));
+        me.controllers["R6"] = SubmodeController.new("PERFINIT");
     },
 };
 
