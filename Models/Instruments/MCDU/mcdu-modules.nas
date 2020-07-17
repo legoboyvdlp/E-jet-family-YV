@@ -258,16 +258,11 @@ var FlightPlanModule = {
 
     getNumPages: func () {
         var numEntries = me.fp.getPlanSize();
-        return math.max(1, math.ceil(numEntries / 5));
+        var firstEntry = me.fp.current - 1;
+        return math.max(1, math.ceil((numEntries - firstEntry) / 5));
     },
 
     activate: func () {
-        if (me.fp == nil) {
-            me.page = 0;
-        }
-        else {
-            me.page = math.floor((me.fp.current - 1) / 5);
-        }
         me.loadPage(me.page);
         me.timer = maketimer(1, me, func () {
             me.loadPage(me.page);
@@ -287,7 +282,8 @@ var FlightPlanModule = {
 
     loadPageItems: func (p) {
         var numWaypoints = me.fp.getPlanSize();
-        var firstWP = p * 5;
+        var firstEntry = me.fp.current - 1;
+        var firstWP = p * 5 + firstEntry;
         var transitionAlt = getprop("/controls/flight/transition-alt");
         me.views = [];
         me.controllers = {};
@@ -307,22 +303,26 @@ var FlightPlanModule = {
                         mcdu_yellow | mcdu_large));
                 }
                 else {
-                    append(me.views, StaticView.new(1, y, sprintf("%3d°", wp.leg_bearing), mcdu_green));
-                    var distFormat = (wp.leg_distance < 100) ? "%5.1fNM" : "%5.0fNM";
-                    append(me.views, StaticView.new(6, y, sprintf(distFormat, wp.leg_distance), mcdu_green));
+                    var color = mcdu_yellow;
+                    if (wpi != firstEntry) {
+                        color = mcdu_green;
+                        append(me.views, StaticView.new(1, y, sprintf("%3d°", wp.leg_bearing), mcdu_green));
+                        var distFormat = (wp.leg_distance < 100) ? "%5.1fNM" : "%5.0fNM";
+                        append(me.views, StaticView.new(6, y, sprintf(distFormat, wp.leg_distance), mcdu_green));
+                    }
                     append(me.views, StaticView.new(0, y + 1, sprintf("%-6s", wp.wp_name),
-                        ((wpi == me.fp.current) ? mcdu_magenta : mcdu_green) | mcdu_large));
+                        color | mcdu_large));
                     if (wp.fly_type == 'flyOver') {
                         append(me.views,
                             StaticView.new(
                                 math.max(6, size(wp.wp_name)), y + 1,
-                                "F", mcdu_green | mcdu_large | mcdu_reverse));
+                                "F", color | mcdu_large | mcdu_reverse));
                     }
                     else if (wp.fly_type == 'hold') {
                         append(me.views,
                             StaticView.new(
                                 math.max(6, size(wp.wp_name)), y + 1,
-                                "H", mcdu_green | mcdu_large | mcdu_reverse));
+                                "H", color | mcdu_large | mcdu_reverse));
                     }
                 }
 
