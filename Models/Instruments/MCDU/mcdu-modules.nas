@@ -288,6 +288,8 @@ var FlightPlanModule = {
         me.views = [];
         me.controllers = {};
         var y = 1;
+        append(me.views, StaticView.new(16, y, "SPD/ALT", mcdu_white));
+        append(me.views, StaticView.new(1, y, "ORIGIN/ETD", mcdu_white));
         for (var i = 0; i < 5; i += 1) {
             var wpi = firstWP + i;
             var wp = me.fp.getWP(wpi);
@@ -298,7 +300,6 @@ var FlightPlanModule = {
             }
             else {
                 if (wpi == 0) {
-                    append(me.views, StaticView.new(1, y, "ORIGIN/ETD", mcdu_white));
                     append(me.views, StaticView.new(0, y + 1, sprintf("%-6s", wp.wp_name),
                         mcdu_yellow | mcdu_large));
                 }
@@ -381,6 +382,12 @@ var FlightPlanModule = {
                 }
                 else if (me.specialMode == "HOLD") {
                     # TODO
+                }
+                else if (wpi == firstEntry) {
+                    # TODO: trigger DIRECT menu
+                }
+                else {
+                    me.controllers[lsk] = PopController.new(wp.id);
                 }
             }
             y += 2;
