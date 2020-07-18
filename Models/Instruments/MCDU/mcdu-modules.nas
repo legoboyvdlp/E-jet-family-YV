@@ -245,8 +245,7 @@ var FlightPlanModule = {
             m.fp = flightplan();
             if (m.fp == nil) {
                 m.fpStatus = '';
-                fms.modifiedFlightplan = createFlightplan();
-                m.fp = fms.modifiedFlightplan;
+                m.fp = fms.getModifyableFlightplan();
             }
             else {
                 m.fpStatus = 'ACT';
@@ -254,6 +253,27 @@ var FlightPlanModule = {
         }
         m.timer = nil;
         return m;
+    },
+
+    startEditing: func () {
+        if (me.fpStatus == 'ACT') {
+            me.fp = fms.getModifyableFlightplan();
+            me.fpStatus = 'MOD';
+        }
+    },
+
+    finishEditing: func () {
+        if (me.fpStatus != 'ACT') {
+            me.fp = fms.commitFlightplan();
+            me.fpStatus = 'ACT';
+        }
+    },
+
+    cancelEditing: func () {
+        if (me.fpStatus != 'ACT') {
+            me.fp = fms.discardFlightplan();
+            me.fpStatus = 'ACT';
+        }
     },
 
     getNumPages: func () {
@@ -280,9 +300,21 @@ var FlightPlanModule = {
 
     getTitle: func () { return me.fpStatus ~ " FLT PLAN"; },
 
+    findWaypointByID: func (wpid) {
+        var fst = math.max(0, me.fp.current);
+
+        for (var i = fst; i < me.fp.getPlanSize(); i += 1) {
+            var wp = me.fp.getWP(i);
+            if (wp.id == wpid) {
+                return wp;
+            }
+        }
+        return nil;
+    },
+
     loadPageItems: func (p) {
         var numWaypoints = me.fp.getPlanSize();
-        var firstEntry = me.fp.current - 1;
+        var firstEntry = math.max(0, me.fp.current - 1);
         var firstWP = p * 5 + firstEntry;
         var transitionAlt = getprop("/controls/flight/transition-alt");
         me.views = [];
@@ -358,6 +390,7 @@ var FlightPlanModule = {
                     var this = me;
                     me.controllers[lsk] = FuncController.new(func(owner, val) {
                         printf("RQ DIRECT %s", val);
+                        owner.startEditing();
                         var directToModule = func (mcdu, parent) {
                             return DirectToModule.new(mcdu, parent, this.fp, val);
                         };
@@ -373,23 +406,18 @@ var FlightPlanModule = {
                             }
                             else {
                                 var parsed = parseRestrictions(val);
-                                # debug.dump("Parsed restrictions", parsed);
-                                # debug.dump("Waypoint before:",
-                                #    wp.id,
-                                #    wp.speed_cstr, wp.speed_cstr_type,
-                                #    wp.alt_cstr, wp.alt_cstr_type);
                                 if (parsed != nil) {
-                                    if (parsed.speed != nil) {
-                                        wp.setSpeed(parsed.speed.val, parsed.speed.ty);
-                                    }
-                                    if (parsed.alt != nil) {
-                                        wp.setAltitude(parsed.alt.val, parsed.alt.ty);
+                                    owner.startEditing();
+                                    var wpx = owner.findWaypointByID(wp.id);
+                                    if (wpx != nil) {
+                                        if (parsed.speed != nil) {
+                                            wpx.setSpeed(parsed.speed.val, parsed.speed.ty);
+                                        }
+                                        if (parsed.alt != nil) {
+                                            wpx.setAltitude(parsed.alt.val, parsed.alt.ty);
+                                        }
                                     }
                                 }
-                                # debug.dump("Waypoint after:",
-                                #     wp.id,
-                                #     wp.speed_cstr, wp.speed_cstr_type,
-                                #     wp.alt_cstr, wp.alt_cstr_type);
                             }
                         });
                     })(wp);
@@ -400,9 +428,23 @@ var FlightPlanModule = {
         if (me.specialMode == "FLYOVER") {
             me.mcdu.setScratchpadMsg("*FLYOVER*", mcdu_yellow);
         }
-        append(me.views,
-            StaticView.new(14, 12, "PERF INIT" ~ right_triangle, mcdu_white | mcdu_large));
-        me.controllers["R6"] = SubmodeController.new("PERFINIT");
+        if (me.fpStatus == 'ACT') {
+            append(me.views,
+                StaticView.new(14, 12, "PERF INIT" ~ right_triangle, mcdu_white | mcdu_large));
+            me.controllers["R6"] = SubmodeController.new("PERFINIT");
+        }
+        else {
+            append(me.views,
+                StaticView.new(0, 12, left_triangle ~ "CANCEL", mcdu_white | mcdu_large));
+            me.controllers["L6"] = FuncController.new(func (owner, val) {
+                owner.cancelEditing();
+            });
+            append(me.views,
+                StaticView.new(15, 12, "ACTIVATE" ~ right_triangle, mcdu_white | mcdu_large));
+            me.controllers["R6"] = FuncController.new(func (owner, val) {
+                owner.finishEditing();
+            });
+        }
     },
 };
 
@@ -413,7 +455,8 @@ var DirectToModule = {
         m.fp = fp;
         m.directToID = directToID;
         var wp = nil;
-        for (var i = fp.current; i < fp.getPlanSize(); i += 1) {
+        var fst = math.max(1, fp.current);
+        for (var i = fst; i < fp.getPlanSize(); i += 1) {
             wp = fp.getWP(i);
             if (wp.id == directToID) {
                 m.directToWP = wp;

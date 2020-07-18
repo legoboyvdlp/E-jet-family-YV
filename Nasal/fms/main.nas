@@ -12,6 +12,34 @@ var modifiedRoute = nil;
 
 var modifiedFlightplan = nil;
 
+var getModifyableFlightplan = func () {
+    if (modifiedFlightplan == nil) {
+        var fp = flightplan();
+        if (fp == nil) {
+            modifiedFlightplan = createFlightplan();
+        }
+        else {
+            modifiedFlightplan = flightplan().clone();
+        }
+    }
+    return modifiedFlightplan;
+};
+
+var commitFlightplan = func () {
+    if (modifiedFlightplan != nil) {
+        var current = modifiedFlightplan.current;
+        modifiedFlightplan.activate();
+        modifiedFlightplan.current = current;
+        modifiedFlightplan = nil;
+    }
+    return flightplan();
+};
+
+var discardFlightplan = func () {
+    modifiedFlightplan = nil;
+    return flightplan();
+};
+
 setlistener("autopilot/route-manager/signals/edited", func {
     modifiedRoute = nil;
     activeRoute = Route.new(flightplan());
