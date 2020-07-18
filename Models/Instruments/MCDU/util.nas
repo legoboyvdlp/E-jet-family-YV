@@ -47,14 +47,14 @@ var prepended = func (val, vec) {
 };
 
 
-var formatRestrictions = func (wp, transitionAlt = 18000) {
-    var formattedAltRestr = "-----";
+var formatRestrictions = func (wp, transitionAlt = 18000, pretty = 0) {
+    var formattedAltRestr = pretty ? "-----" : "-";
     if (wp.alt_cstr != nil and wp.alt_cstr > 0) {
         if (wp.alt_cstr > transitionAlt) {
             formattedAltRestr = sprintf("FL%03.0f", wp.alt_cstr / 100);
         }
         else {
-            formattedAltRestr = sprintf("%5.0f", wp.alt_cstr);
+            formattedAltRestr = sprintf(pretty ? "%5.0f" : "%1.0f", wp.alt_cstr);
         }
         if (wp.alt_cstr_type == "above") {
             formattedAltRestr ~= "A";
@@ -63,13 +63,13 @@ var formatRestrictions = func (wp, transitionAlt = 18000) {
             formattedAltRestr ~= "B";
         }
     }
-    var formattedSpeedRestr = "---";
+    var formattedSpeedRestr = pretty ? "---" : "-";
     if (wp.speed_cstr != nil and wp.speed_cstr > 0) {
         if (wp.speed_cstr_type == "mach") {
             formattedSpeedRestr = sprintf("%0.2fM", wp.speed_cstr);
         }
         else {
-            formattedSpeedRestr = sprintf("%3.0f", wp.speed_cstr);
+            formattedSpeedRestr = sprintf(pretty ? "%3.0f" : "%1.0f", wp.speed_cstr);
         }
         if (wp.speed_cstr_type == "above") {
             formattedSpeedRestr ~= "A";
@@ -78,7 +78,7 @@ var formatRestrictions = func (wp, transitionAlt = 18000) {
             formattedSpeedRestr ~= "B";
         }
     }
-    return sprintf("%4s/%-4s", formattedSpeedRestr, formattedAltRestr);
+    return sprintf(pretty ? "%4s/%-4s" : "%s/%s", formattedSpeedRestr, formattedAltRestr);
 };
 
 var extractAboveBelow = func (str) {

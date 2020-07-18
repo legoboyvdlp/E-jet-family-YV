@@ -332,7 +332,7 @@ var FlightPlanModule = {
                 append(me.views,
                     StaticView.new(
                         13, y + 1,
-                        formatRestrictions(wp, transitionAlt),
+                        formatRestrictions(wp, transitionAlt, 1),
                         mcdu_cyan | mcdu_large));
 
                 if (me.specialMode == "FLYOVER") {
@@ -369,15 +369,15 @@ var FlightPlanModule = {
                     me.controllers[rsk] = (func (wp) {
                         return FuncController.new(func (owner, val) {
                             if (val == nil) {
-                                owner.mcdu.setScratchpad(formatRestrictions(wp, transitionAlt));
+                                owner.mcdu.setScratchpad(formatRestrictions(wp, transitionAlt, 0));
                             }
                             else {
                                 var parsed = parseRestrictions(val);
-                                debug.dump("Parsed restrictions", parsed);
-                                debug.dump("Waypoint before:",
-                                    wp.id,
-                                    wp.speed_cstr, wp.speed_cstr_type,
-                                    wp.alt_cstr, wp.alt_cstr_type);
+                                # debug.dump("Parsed restrictions", parsed);
+                                # debug.dump("Waypoint before:",
+                                #    wp.id,
+                                #    wp.speed_cstr, wp.speed_cstr_type,
+                                #    wp.alt_cstr, wp.alt_cstr_type);
                                 if (parsed != nil) {
                                     if (parsed.speed != nil) {
                                         wp.setSpeed(parsed.speed.val, parsed.speed.ty);
@@ -386,10 +386,10 @@ var FlightPlanModule = {
                                         wp.setAltitude(parsed.alt.val, parsed.alt.ty);
                                     }
                                 }
-                                debug.dump("Waypoint after:",
-                                    wp.id,
-                                    wp.speed_cstr, wp.speed_cstr_type,
-                                    wp.alt_cstr, wp.alt_cstr_type);
+                                # debug.dump("Waypoint after:",
+                                #     wp.id,
+                                #     wp.speed_cstr, wp.speed_cstr_type,
+                                #     wp.alt_cstr, wp.alt_cstr_type);
                             }
                         });
                     })(wp);
@@ -452,7 +452,7 @@ var DirectToModule = {
 
     insertDirect: func () {
         var candidates = findNavaidsByID(me.directToID);
-        debug.dump(me.directToID, candidates);
+        # debug.dump(me.directToID, candidates);
         if (size(candidates) > 0) {
             var directWP = createWP(geo.aircraft_position(), "DIRECT");
             var newWP = candidates[0];
