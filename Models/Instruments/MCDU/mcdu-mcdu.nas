@@ -9,6 +9,8 @@ var MCDU = {
             display: nil,
             scratchpad: "",
             scratchpadElem: nil,
+            scratchpadMsg: "",
+            scratchpadMsgColor: mcdu_white,
             dividers: [],
             screenbuf: [],
             screenbufElems: {fg: [], bg: []},
@@ -196,6 +198,17 @@ var MCDU = {
         }
         me.scratchpad = str ~ '';
         me.scratchpadElem.setText(me.scratchpad);
+        me.scratchpadElem.setColor(1, 1, 1);
+        me.scratchpadMsg = '';
+    },
+
+    setScratchpadMsg: func (str, color = 0) {
+        me.scratchpadMsgColor = color;
+        var c = mcdu_colors[me.scratchpadMsgColor];
+
+        me.scratchpadMsg = str ~ '';
+        me.scratchpadElem.setText(me.scratchpadMsg);
+        me.scratchpadElem.setColor(c[0], c[1], c[2]);
     },
 
     handleCommand: func () {

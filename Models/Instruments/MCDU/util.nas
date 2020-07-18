@@ -47,3 +47,202 @@ var prepended = func (val, vec) {
 };
 
 
+var formatRestrictions = func (wp, transitionAlt = 18000) {
+    var formattedAltRestr = "-----";
+    if (wp.alt_cstr != nil and wp.alt_cstr > 0) {
+        if (wp.alt_cstr > transitionAlt) {
+            formattedAltRestr = sprintf("FL%03.0f", wp.alt_cstr / 100);
+        }
+        else {
+            formattedAltRestr = sprintf("%5.0f", wp.alt_cstr);
+        }
+        if (wp.alt_cstr_type == "above") {
+            formattedAltRestr ~= "A";
+        }
+        else if (wp.alt_cstr_type == "below") {
+            formattedAltRestr ~= "B";
+        }
+    }
+    var formattedSpeedRestr = "---";
+    if (wp.speed_cstr != nil and wp.speed_cstr > 0) {
+        if (wp.speed_cstr_type == "mach") {
+            formattedSpeedRestr = sprintf("%0.2fM", wp.speed_cstr);
+        }
+        else {
+            formattedSpeedRestr = sprintf("%3.0f", wp.speed_cstr);
+        }
+        if (wp.speed_cstr_type == "above") {
+            formattedSpeedRestr ~= "A";
+        }
+        else if (wp.speed_cstr_type == "below") {
+            formattedSpeedRestr ~= "B";
+        }
+    }
+    return sprintf("%4s/%-4s", formattedSpeedRestr, formattedAltRestr);
+};
+
+var extractAboveBelow = func (str) {
+    # debug.dump("extractAboveBelow", str);
+    if (str == '') {
+        return [str, nil];
+    }
+    if (num(str) != nil) {
+        return [str, nil];
+    }
+    var last = substr(str, -1, 1);
+    if (num(last) == nil) {
+        var corePart = substr(str, 0, size(str) - 1);
+        return [corePart, last];
+    }
+    else {
+        return [str, nil];
+    }
+};
+
+var parseAsAltitude = func (str) {
+    # debug.dump("parseAsAltitude", str);
+    var n = num(str);
+    if (n == nil) {
+        if (substr(str, 0, 2) == "FL") {
+            n = substr(str, 2);
+            if (n == nil) {
+                return nil;
+            }
+            else {
+                return n * 100;
+            }
+        }
+        else {
+            return nil;
+        }
+    }
+    else {
+        if (n >= 1000) {
+            return n;
+        }
+        else {
+            return nil;
+        }
+    }
+};
+
+var parseAsSpeed = func (str) {
+    # debug.dump("parseAsSpeed", str);
+    var n = num(str);
+    if (n != nil and n < 1000) {
+        return n;
+    }
+    else {
+        return nil;
+    }
+};
+
+var parseAsMach = func (str) {
+    # debug.dump("parseAsMach", str);
+    var n = num(str);
+    if (n == nil) return nil;
+
+    if (n < 1.0) {
+        return n;
+    }
+    else if (n < 10.0) {
+        return n / 10.0;
+    }
+    else if (n < 100.0) {
+        return n / 100.0;
+    }
+};
+
+var parseRestrictions = func (str) {
+    var s = split("/", str);
+    # debug.dump("Split restrictions", s);
+    if (size(s) == 0) { return nil; }
+    var speedPart = nil;
+    var altPart = nil;
+    if (size(s) == 1) {
+        # extract above/below marker
+        var parts = extractAboveBelow(s[0]);
+        if (parts == nil) { return nil; }
+        
+        # if the indicator is "M", then we're dealing with an "at mach" rule.
+        if (parts[1] == "M") {
+            var mach = parseAsMach(parts[0]);
+            if (mach == nil) { return nil; }
+            return {
+                speed: {
+                    val: mach,
+                    ty: 'mach',
+                },
+                alt: nil,
+            }
+        }
+        else {
+            var ty = 'at';
+            if (parts[1] == "A") { ty = 'above'; }
+            if (parts[1] == "B") { ty = 'below'; }
+            var alt = parseAsAltitude(parts[0]);
+            var speed = parseAsSpeed(parts[0]);
+            if (alt != nil) {
+                return {
+                    speed: nil,
+                    alt: {
+                        val: alt,
+                        ty: ty,
+                    },
+                };
+            }
+            else {
+                return {
+                    speed: {
+                        val: speed,
+                        ty: ty,
+                    },
+                    alt: nil,
+                }
+            }
+        }
+    } # size = 1
+    else {
+        var speedPart = s[0];
+        var altPart = s[1];
+        var result = { speed: nil, alt: nil };
+
+        var speedParts = extractAboveBelow(speedPart);
+        if (speedParts[1] == "M") {
+            var mach = parseAsMach(speedParts[0]);
+            if (mach != nil) {
+                result.speed = { val: mach, ty: 'mach' };
+            }
+        }
+        else {
+            var speed = nil;
+            if (substr(speedPart, 0, 1) == "-") {
+                speed = 0; # delete!
+            }
+            else {
+                speed = parseAsSpeed(speedParts[0]);
+            }
+            if (speed != nil) {
+                result.speed = { val: speed, ty: 'at' };
+                if (speedParts[1] == "A") { result.speed.ty = 'above'; }
+                if (speedParts[1] == "B") { result.speed.ty = 'below'; }
+            }
+        }
+
+        var altParts = extractAboveBelow(altPart);
+        var alt = nil;
+        if (substr(altPart, 0, 1) == "-") {
+            alt = 0; # delete!
+        }
+        else {
+            alt = parseAsAltitude(altParts[0]);
+        }
+        if (alt != nil) {
+            result.alt = { val: alt, ty: 'at' };
+            if (altParts[1] == "A") { result.alt.ty = 'above'; }
+            if (altParts[1] == "B") { result.alt.ty = 'below'; }
+        }
+
+        return result;
+    }
+};

@@ -288,8 +288,10 @@ var FlightPlanModule = {
         me.views = [];
         me.controllers = {};
         var y = 1;
-        append(me.views, StaticView.new(16, y, "SPD/ALT", mcdu_white));
-        append(me.views, StaticView.new(1, y, "ORIGIN/ETD", mcdu_white));
+        if (p == 0) {
+            append(me.views, StaticView.new(16, y, "SPD/ALT", mcdu_white));
+            append(me.views, StaticView.new(1, y, "ORIGIN/ETD", mcdu_white));
+        }
         for (var i = 0; i < 5; i += 1) {
             var wpi = firstWP + i;
             var wp = me.fp.getWP(wpi);
@@ -327,41 +329,10 @@ var FlightPlanModule = {
                     }
                 }
 
-                var formattedAltRestr = "-----";
-                if (wp.alt_cstr != nil and wp.alt_cstr > 0) {
-                    if (wp.alt_cstr > transitionAlt) {
-                        formattedAltRestr = sprintf("FL%03.0f", wp.alt_cstr / 100);
-                    }
-                    else {
-                        formattedAltRestr = sprintf("%5.0f", wp.alt_cstr);
-                    }
-                    if (wp.alt_cstr_type == "above") {
-                        formattedAltRestr ~= "A";
-                    }
-                    else if (wp.alt_cstr_type == "below") {
-                        formattedAltRestr ~= "B";
-                    }
-                }
-                var formattedSpeedRestr = "---";
-                if (wp.speed_cstr != nil and wp.speed_cstr > 0) {
-                    if (wp.speed_cstr_type == "mach") {
-                        formattedSpeedRestr = sprintf("%0.2fM", wp.speed_cstr);
-                    }
-                    else {
-                        formattedSpeedRestr = sprintf("%3.0f", wp.speed_cstr);
-                    }
-                    if (wp.speed_cstr_type == "above") {
-                        formattedSpeedRestr ~= "A";
-                    }
-                    else if (wp.speed_cstr_type == "below") {
-                        formattedSpeedRestr ~= "B";
-                    }
-                }
-
                 append(me.views,
                     StaticView.new(
                         13, y + 1,
-                        sprintf("%4s/%-6s", formattedSpeedRestr, formattedAltRestr),
+                        formatRestrictions(wp, transitionAlt),
                         mcdu_cyan | mcdu_large));
 
                 if (me.specialMode == "FLYOVER") {
@@ -395,13 +366,39 @@ var FlightPlanModule = {
                 }
                 else {
                     me.controllers[lsk] = PopController.new(wp.id);
+                    me.controllers[rsk] = (func (wp) {
+                        return FuncController.new(func (owner, val) {
+                            if (val == nil) {
+                                owner.mcdu.setScratchpad(formatRestrictions(wp, transitionAlt));
+                            }
+                            else {
+                                var parsed = parseRestrictions(val);
+                                debug.dump("Parsed restrictions", parsed);
+                                debug.dump("Waypoint before:",
+                                    wp.id,
+                                    wp.speed_cstr, wp.speed_cstr_type,
+                                    wp.alt_cstr, wp.alt_cstr_type);
+                                if (parsed != nil) {
+                                    if (parsed.speed != nil) {
+                                        wp.setSpeed(parsed.speed.val, parsed.speed.ty);
+                                    }
+                                    if (parsed.alt != nil) {
+                                        wp.setAltitude(parsed.alt.val, parsed.alt.ty);
+                                    }
+                                }
+                                debug.dump("Waypoint after:",
+                                    wp.id,
+                                    wp.speed_cstr, wp.speed_cstr_type,
+                                    wp.alt_cstr, wp.alt_cstr_type);
+                            }
+                        });
+                    })(wp);
                 }
             }
             y += 2;
         }
         if (me.specialMode == "FLYOVER") {
-            append(me.views,
-                StaticView.new(0, 11, "*FLYOVER*", mcdu_green | mcdu_large));
+            me.mcdu.setScratchpadMsg("*FLYOVER*", mcdu_yellow);
         }
         append(me.views,
             StaticView.new(14, 12, "PERF INIT" ~ right_triangle, mcdu_white | mcdu_large));
